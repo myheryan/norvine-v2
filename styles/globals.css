@@ -1,0 +1,317 @@
+@import "tailwindcss";
+
+@source "../../components";
+@source "../../pages";
+@source "../../app";
+
+@theme {
+  --font-articulat: "Articulat CF", sans-serif;
+  --font-hk: "HK Grotesk", sans-serif;
+  --color-norvine-red: #EC0000;
+}
+
+/* --- RESET & GLOBAL STYLE --- */
+@layer base {
+  * {
+  body {
+    background-color: #FFFFFF;
+    color: #1D1E20;
+    font-family: 'HK Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    /* Pastikan overflow-y auto agar bisa di-scroll */
+    overflow-y: auto; 
+  }
+  }
+
+@theme {
+  --color-norvine-red: #EC0000;
+  --color-norvine-black: #1D1E20;
+}
+
+@layer components {
+  /* Tambahan untuk Navbar */
+  .nav-link-active {
+    @apply text-norvine-red border-b border-norvine-red;
+  }
+}
+
+  /* Custom Scrollbar Norvine (Sharp & Minimalist) */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1D1E20;
+    border-radius: 0px !important;
+  }
+  ::-webkit-scrollbar-track {
+    background: #F1F1F1;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .text-clamp-1 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+
+  .text-clamp-2 {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .marquee-mask {
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+  }
+}
+
+@layer components {
+  /* --- DESKTOP TYPOGRAPHY (Norvine Standard) --- */
+  .txt-h1 {
+    font-family: 'Articulat CF';
+    font-weight: 800;
+    font-size: 3.688rem;
+    line-height: 100%;
+    letter-spacing: 0.05rem;
+    text-transform: uppercase;
+  }
+  .txt-h2 {
+    font-family: 'Articulat CF';
+    font-weight: 800;
+    font-size: 2.438rem;
+    line-height: 110%;
+    letter-spacing: 0.02rem;
+  }
+  .txt-h3 {
+    font-family: 'Articulat CF';
+    font-weight: 700;
+    font-size: 1.438rem;
+    line-height: 140%;
+  }
+  .txt-h4 {
+    font-family: 'HK Grotesk';
+    font-weight: 700;
+    font-size: 1.125rem;
+    line-height: 140%;
+    letter-spacing: 0.02rem;
+  }
+  .txt-h5 {
+    font-family: 'HK Grotesk';
+    font-size: 0.875rem;
+    line-height: 140%;
+    letter-spacing: 0.02em;
+  }
+  .txt-body {
+    font-family: 'HK Grotesk';
+    font-weight: 400;
+    font-size: 1.125rem;
+    line-height: 160%;
+    letter-spacing: 0.02em;
+  }
+
+  /* --- MOBILE TYPOGRAPHY --- */
+  .txt-mobile-h1 {
+    font-family: 'Articulat CF';
+    font-weight: 800;
+    font-size: 1.625rem;
+    line-height: 130%;
+  }
+  .txt-mobile-h2 {
+    font-family: 'Articulat CF';
+    font-weight: 700;
+    font-size: 1.25rem;
+    line-height: 140%;
+  }
+  .txt-mobile-h3 {
+    font-family: 'HK Grotesk';
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 150%;
+  }
+  .txt-mobile-body {
+    font-family: 'HK Grotesk';
+    font-weight: 400;
+    font-size: 0.938rem;
+    line-height: 160%;
+  }
+
+  .tkp-checkbox { appearance: none; width: 20px; height: 20px; border: 2px solid #cbd5e1; border-radius: 6px; outline: none; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; background-color: white; }
+  .tkp-checkbox:checked { background-color: #00AA5B; border-color: #00AA5B; }
+  .tkp-checkbox:checked::after { content: '✓'; color: white; font-size: 14px; font-weight: bold; }   
+
+  /* Collapsible Styling (Accordion Produk) */
+  .Collapsible {
+    border-top: 1px solid #1D1E20;
+  }
+  .Collapsible__trigger {
+    display: flex;
+    font-family: 'HK Grotesk';
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 16px 0;
+    cursor: pointer;
+    position: relative;
+    width: 100%;
+  }
+  .Collapsible__trigger::after {
+    content: '+'; /* Pakai simbol plus simple lebih elegant */
+    position: absolute;
+    right: 0;
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+  }
+  .Collapsible__trigger.is-open::after {
+    transform: rotate(45deg); /* Berubah jadi X saat buka */
+  }
+
+  /* Shopee-style Address Stripe (Tapi tajam) */
+  .shopee-address-stripe {
+    height: 3px;
+    width: 100%;
+    background-image: repeating-linear-gradient(45deg, #6fa6d6, #6fa6d6 33px, transparent 0, transparent 41px, #f18d9b 0, #f18d9b 74px, transparent 0, transparent 82px);
+    background-size: 116px 3px;
+  }
+
+  /* --- ANIMATIONS --- */
+  .animate-norvine {
+    transition: all 400ms cubic-bezier(0.2, 1, 1, 1);
+  }
+
+  @keyframes marquee-scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  .animate-marquee-fix {
+    display: flex;
+    width: max-content;
+    animation: marquee-scroll 35s linear infinite;
+  }
+
+    .animate {
+    transition-property: color, background-color, border-color,
+      text-decoration-color, fill, stroke, opacity, box-shadow, transform,
+      filter, backdrop-filter;
+    transition-timing-function: cubic-bezier(0.2, 1, 1, 1);
+    transition-duration: 500ms;
+    transition-delay: 300ms;
+  }
+  .health-journey-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 72px) repeat(
+        6,
+        minmax(0, 1fr) minmax(0, 4rem)
+      );
+  }
+  .health-journey-first-half-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 4rem) minmax(0, 1fr));
+  }
+  .health-journey-second-half-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr), minmax(0, 4rem));
+  }
+  .inner-circle-shadow {
+    box-shadow: 0px 31px 24px rgba(4, 7, 10, 0.25);
+  }
+  .outer-circle-shadow {
+    box-shadow: 0px 63px 24px rgba(4, 7, 10, 0.25);
+  }
+}
+
+/* --- FONTS CONFIGURATION --- */
+@font-face {
+  font-family: 'Articulat CF';
+  src: url('/fonts/ArticulatCF/ArticulatCF-ExtraBold.woff2') format('woff2');
+  font-weight: 800;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Articulat CF';
+  src: url('/fonts/ArticulatCF/ArticulatCF-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HKGrotesk/HKGrotesk-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'HK Grotesk';
+  src: url('/fonts/HKGrotesk/HKGrotesk-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
+/* Fix untuk Blockquote agar Minimalist */
+blockquote {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  padding: 10px 0 10px 20px;
+  border-left: 3px solid #EC0000;
+  color: #333333;
+  margin: 20px 0;
+}
+
+/* Target container utama Sonner */
+[data-sonner-toaster] {
+  top: 10% !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  position: fixed !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  pointer-events: none;
+}
+
+/* Pastikan toast di dalamnya juga terpusat */
+[data-sonner-toast] {
+  margin: 0 auto !important;
+  pointer-events: auto;
+}
+
+/* styles/globals.css */
+@theme {
+  /* Keyframes Rotasi Elegan */
+  @keyframes logo-rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* Animasi Pulse untuk N di tengah */
+  @keyframes n-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.9); opacity: 0.8; }
+  }
+
+  /* Keyframes Slide In untuk Text */
+  @keyframes slide-in {
+    0% { transform: translateY(10px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  /* Daftarkan ke utility Tailwind v4 */
+  --animate-logo-rotate: logo-rotate 3.5s linear infinite;
+  --animate-n-pulse: n-pulse 2.5s ease-in-out infinite;
+  --animate-slide-in: slide-in 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

@@ -1,0 +1,7 @@
+export { default as healthJourneyBread } from '../public/landing/health-journey/bread.webp'
+export { default as healthJourneyDuvet } from '../public/landing/health-journey/duvet.webp'
+export { default as healthJourneyGirl } from '../public/landing/health-journey/girl.webp'
+export { default as healthJourneyKettleBell } from '../public/landing/health-journey/kettle-bell.webp'
+export { default as healthJourneyProduct } from '../public/landing/health-journey/product.webp'
+export { default as healthJourneySleep } from '../public/landing/health-journey/sleep.webp'
+export { default as healthJourneyWork } from '../public/landing/health-journey/work.webp'
