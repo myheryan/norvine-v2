@@ -113,7 +113,7 @@ export default function OrderDetailPage() {
             <FiInfo className="text-[#ee4d2d]" size={18} />
             <p className="text-[13px] text-gray-700">
                 {order.status === "PENDING" && "Mohon segera selesaikan pembayaran Anda sebelum waktu habis."}
-                {order.status === "SETTLEMENT" && "Pembayaran terverifikasi. Penjual sedang menyiapkan pesanan Anda."}
+                {order.status === "PAID" && "Pembayaran terverifikasi. Kami sedang memproses pesanan Anda."}
                 {order.status === "SHIPPED" && "Pesanan Anda sedang dalam perjalanan oleh kurir."}
                 {order.status === "COMPLETED" && "Pesanan telah diterima. Terima kasih telah berbelanja!"}
                 {isFailed && "Pesanan ini telah dibatalkan atau waktu pembayaran telah habis."}

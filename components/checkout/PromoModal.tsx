@@ -36,43 +36,45 @@ export default function PromoModal({ isOpen, subtotal, onClose, items, appliedPr
     } finally { setIsFetchingList(false) }
   }
 
-  const handleCheckPromo = async (codeToUse: string) => {
-    const code = codeToUse.trim().toUpperCase()
-    if (!code) return toast.error("Masukkan kode promo")
+const handleCheckPromo = async (codeToUse: string) => {
+  const code = codeToUse.trim().toUpperCase();
+  if (!code) return toast.error("Masukkan kode promo");
+  
+  setApplyingCode(code);
+  setIsApplying(true);
+
+  try {
+    const cartSummary = items.map(i => ({ 
+      productId: i.productId || i.id, 
+      quantity: i.quantity 
+    }));
     
-    setApplyingCode(code)
-    setIsApplying(true)
+    const res = await fetch(`/api/promo?code=${code}&cartItems=${encodeURIComponent(JSON.stringify(cartSummary))}`);
+    const result = await res.json();
 
-    try {
-      const cartSummary = items.map(i => ({ 
-        productId: i.productId || i.id, 
-        quantity: i.quantity 
-      }))
-      
-      const res = await fetch(`/api/promo?code=${code}&cartItems=${encodeURIComponent(JSON.stringify(cartSummary))}`)
-      const result = await res.json()
+    if (!res.ok || !result.success) throw new Error(result.message || "Voucher tidak memenuhi syarat");
 
-      if (!res.ok || !result.success) throw new Error(result.message || "Voucher tidak memenuhi syarat")
-
-      setOrderData((prev: any) => ({
-        ...prev,
-        appliedPromo: { 
-          id: result.promo.id, 
-          code: result.promo.code, 
-          name: result.promo.name 
-        },
-        discount: result.promo.discountAmount
-      }))
-      
-      toast.success("Voucher berhasil terpasang!")
-      onClose()
-    } catch (err: any) {
-      toast.error(err.message)
-    } finally {
-      setIsApplying(false)
-      setApplyingCode(null)
-    }
+    // UPDATE STATE: Pastikan discountAmount dari server masuk ke state utama
+    setOrderData((prev: any) => ({
+      ...prev,
+      appliedPromo: { 
+        id: result.promo.id, 
+        code: result.promo.code, 
+        name: result.promo.name 
+      },
+      discount: result.promo.discountAmount // Ini yang memotong harga di Checkout
+    }));
+    
+    setPromoInput(''); // Bersihkan input manual
+    toast.success("Voucher berhasil terpasang!");
+    onClose();
+  } catch (err: any) {
+    toast.error(err.message);
+  } finally {
+    setIsApplying(false);
+    setApplyingCode(null);
   }
+}
 
   const handleRemovePromo = () => {
     setOrderData((prev: any) => ({ ...prev, appliedPromo: null, discount: 0 }))

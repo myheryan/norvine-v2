@@ -327,7 +327,7 @@ const logistics = useMemo(() => {
         subtotal={orderData.subtotal} 
         items={orderData.items} 
         appliedPromo={orderData.appliedPromo}
-        setOrderData={(newData: any) => setOrderData(newData)} 
+        setOrderData={setOrderData} 
       />
     </>
   )
