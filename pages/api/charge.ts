@@ -27,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const destStr = `${district}, ${city}`.toUpperCase();
       // Tips: Gunakan URL absolut untuk fetch internal
-      const shipRes = await fetch(`${process.env.NEXTAUTH_URL}/api/shipping/dummy`, {
+      const shipRes = await fetch(`${process.env.NEXTAUTH_URL}/api/shipping`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 

@@ -89,49 +89,30 @@ const [orderData, setOrderData] = useState({
     }
   }, [router.isReady]);
 
-// Baris 81 - Update useMemo logistik
+
 const logistics = useMemo(() => {
-  // Guard clause: Cegah error jika orderData.items belum dimuat (undefined/null)
-  if (!orderData?.items || !Array.isArray(orderData.items)) {
-    return { totalWeight: 0, totalWidth: 0, maxLength: 0, maxHeight: 0 };
-  }
 
   return orderData.items.reduce((acc, item) => {
     const qty = Number(item.quantity) || 1;
     
-    // PERBAIKAN 1: Eksekusi fungsi WeightToGram cukup 1 kali saja per item (Optimasi Performa)
     const convertedWeight = Number(WeightToGram(item.weight));
     const itemWeight = convertedWeight > 0 ? convertedWeight : NORVINE_CONFIG.DEFAULT_WEIGHT; 
-    
-    acc.totalWeight += itemWeight * qty;
 
     const dim = item.dimensions || {};
     const defDim = NORVINE_CONFIG.DEFAULT_DIMENSIONS;
     
-    // Ambil nilai dimensi saat ini atau gunakan default
     const currentHeight = Number(dim.height) || defDim.height || 0;
     const currentLength = Number(dim.length) || defDim.length || 0;
     const currentWidth = Number(dim.width) || defDim.width || 0;
 
-    // PERBAIKAN 2: Asumsi Anda ingin tinggi minimal 12 dan panjang minimal 5
-    // Logika sebelumnya (acc.maxHeight || 12) berbahaya jika initial state adalah 0,
-    // karena 0 dianggap 'falsy', sehingga akan selalu ter-reset ke 12 di iterasi pertama.
     acc.maxHeight = Math.max(acc.maxHeight === 0 ? 12 : acc.maxHeight, currentHeight);
     acc.maxLength = Math.max(acc.maxLength === 0 ? 5 : acc.maxLength, currentLength);
-    
-    // Total lebar dijumlahkan berdasarkan quantity
     acc.totalWidth += currentWidth * qty;
-     console.log(acc)
+    acc.totalWeight += itemWeight * qty;
+
     return acc;
-  }, 
-  // PERBAIKAN 3: Samakan key di initial object dengan properti yang dipanggil di atas
-  { 
-    totalWeight: 0, 
-    totalWidth: 0,  // Sebelumnya: maxWidth
-    maxLength: 0, 
-    maxHeight: 0    // Sebelumnya: totalHeight
-  });
-}, [orderData?.items]); // Tambahkan optional chaining (?) pada dependency array
+  }, { totalWeight: 0,  totalWidth: 0,  maxLength: 0,  maxHeight: 0 });
+}, [orderData?.items]); 
 
 
   useEffect(() => {
@@ -140,7 +121,7 @@ const logistics = useMemo(() => {
         setIsCheckingShipping(true)
         try {
           const destinationStr = `${address.district}, ${address.city}`.toUpperCase()
-          const res = await fetch('/api/shipping/dummy', {
+          const res = await fetch('/api/shipping', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
