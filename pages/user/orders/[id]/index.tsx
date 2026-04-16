@@ -65,10 +65,10 @@ export default function OrderDetailPage() {
   const progressWidth = ((activeCount - 1) / (steps.length - 1)) * 100;
 
   return (
-    <div className="min-h-screen md:pt-8 pb-32">
+    <div className="min-h-screen md:pt-3">
       
       {/* HEADER */}
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-50">
+      <div className="bg-white border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={() => router.back()} className="flex items-center gap-1 text-gray-500 hover:text-black font-medium">
             <FiChevronLeft size={18} /> Kembali

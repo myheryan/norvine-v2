@@ -34,8 +34,8 @@ export default function Overview() {
               dari seluruh dunia, Norvine keeping you complemented.
             </p>
           </div>
-          <div className="grid gap-18 xl:grid-cols-6 2xl:grid-cols-10">
-            <h2 className="txt-h2 col-span-2 row-span-2 mr-[11.5rem] whitespace-nowrap">
+          <div className="grid md:grid-cols-6 2xl:grid-cols-10 lg:gap-18">
+            <h2 className="txt-h2 col-span-2 row-span-2 mr-[10.5rem] whitespace-nowrap">
               WHY US
             </h2>
             {whyUsList.map(({ description, title, icon }) => {

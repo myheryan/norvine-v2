@@ -184,8 +184,8 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
                 key={`mobile-nav-${idx}`}
                 href={group.href || (group.submenu ? group.submenu[0].href : "#")}
                 className={cn(
-                  "relative flex flex-col items-center justify-end flex-1 pt-2 transition-all duration-300 rounded-full",
-                  isActive ? "bg-[#EBF5FF]" : "bg-transparent" // Background biru muda saat aktif
+                  "relative flex flex-col items-center justify-end flex-1 py-2 transition-all duration-300 rounded-full",
+                  isActive ? "bg-orange-50" : "bg-transparent" // Background biru muda saat aktif
                 )}
               >
                 {/* Icon Container with Badge */}
@@ -193,12 +193,12 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
                   <group.icon 
                     size={14} 
                     strokeWidth={isActive ? 2.5 : 2} 
-                    className={isActive ? "text-[#2489CE]" : "text-zinc-800"} 
+                    className={isActive ? "text-orange-600" : "text-zinc-800"} 
                   />
                   
                   {/* Badge Notifikasi ala Telegram (Hanya contoh di item pertama) */}
                   {idx === 0 && (
-                    <div className="absolute -top-2 -right-3 bg-[#2489CE] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#EBF5FF]">
+                    <div className="absolute -top-2 -right-3 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#EBF5FF]">
                       13
                     </div>
                   )}
@@ -207,7 +207,7 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
                 {/* Label Teks */}
                 <span className={cn(
                   "text-[11px] font-semibold tracking-tight transition-colors",
-                  isActive ? "text-[#2489CE]" : "text-zinc-800"
+                  isActive ? "text-orange-500" : "text-zinc-800"
                 )}>
                   {group.title}
                 </span>
@@ -218,7 +218,7 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
           {/* User Profile / Menu Section */}
           <button 
             onClick={() => setIsMobileOpen(true)}
-            className="relative flex flex-col items-center justify-center flex-1 transition-all duration-300 rounded-full"
+            className="relative flex flex-col items-center justify-center flex-1 pb-2 transition-all duration-300 rounded-full"
           >
             <div className="relative">
               {/* Avatar dengan background hijau (mirip inisial 'C' di gambar) */}

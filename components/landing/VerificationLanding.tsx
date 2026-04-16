@@ -34,7 +34,7 @@ export default function VerificationLanding() {
             <span className="text-[#EC0000]">SISTEM VERIFIKASI</span>
           </h1>
           <div className="mb-24 flex flex-row justify-around">
-            <div className="relative aspect-[726/656] w-[37.812%] select-none">
+            <div className="relative aspect-[726/656] w-[37.812%] select-none hidden lg:block" >
               <Image
                 src="/landing/verification.webp"
                 alt="verification"

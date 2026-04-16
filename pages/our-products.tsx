@@ -144,9 +144,9 @@ export default function OurProducts({ categories, filters, products }: Props) {
             <span className="text-[#EC0000]">Health supplements</span>
           </h5>
         </div>
-        <div className="flex flex-row space-x-16 px-18">
+        <div className="flex flex-row space-x-16 px-18 ">
           {/* Sidebar Filter */}
-          <div className="lg:w-[24.75rem] py-8">
+          <div className="lg:w-[24.75rem">
             <div className="mb-8 border-b px-4 pb-8">
               <h4 className="txt-h4 mb-8">Kategori</h4>
               <div className="space-y-4">
@@ -189,7 +189,7 @@ export default function OurProducts({ categories, filters, products }: Props) {
           </div>
           
           {/* Grid Produk Desktop */}
-          <div className="mb-48 grid max-w-4xl flex-1 md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8 justify-center">
+          <div className="mb-48 grid max-w-4xl flex mx-auto md:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8 justify-center">
             {searchResult.map(({ id, ...product }) => (
               
               <Product key={id} id={id}  {...product} />
