@@ -67,7 +67,7 @@ export default function ProductCarousel({ data }: { data: Array<string> }) {
                   width={800}
                   alt="product picture"
                   // Membatasi ukuran gambar di desktop menjadi maksimal 595px agar sesuai dengan desain awalmu
-                  className="h-auto w-full max-w-[800px] object-contain md:max-w-[595px]"
+                  className="h-auto w-full max-w-[800px] object-contain md:max-w-[320px] lg:md:max-w-[595px]"
                 />
               </div>
             </div>

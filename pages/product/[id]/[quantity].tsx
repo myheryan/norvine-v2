@@ -282,8 +282,8 @@ console.log("Variant Aktif:", activeVariantData?.name);
           </div>
         </div>
 
-        <div className="w-full flex-1 px-4 mt-8 md:mt-0 md:px-16">
-          <div className="hidden md:flex mb-5 h-32 items-center py-8">
+        <div className="w-full flex-1 px-4 mt-8 md:mt-0 md:px-8 lg:px-16">
+          <div className="hidden md:flex items-center py-8">
             <button 
               onClick={() => router.back()} 
               className="mr-4 p-1 hover:bg-slate-100 rounded-full transition-colors cursor-pointer outline-none"
@@ -320,7 +320,7 @@ console.log("Variant Aktif:", activeVariantData?.name);
             </Breadcrumb>
           </div>
 
-          <h1 className="txt-mobile-h1 md:text-4xl lg:text-5xl font-bold tracking-wide">
+          <h1 className="txt-mobile-h1 md:text-4xl lg:text-5xl font-bold tracking-wide mb-3">
             {name.toUpperCase()}
           </h1>
 
@@ -371,6 +371,25 @@ console.log("Variant Aktif:", activeVariantData?.name);
             {formatRp(currentPrice)} 
           </div>
 
+            
+
+
+    {product.isDisplayOnly ? (
+          /* TAMPILAN JIKA DISPLAY ONLY */
+<div className="w-full p-6 flex flex-col items-center justify-center ">
+  <p className="text-[#1D1E20] text-center leading-relaxed">
+    Produk hanya tersedia di apotek. Cek Mitra Apotek terdekat{" "}
+    <Link 
+      href="/find-us" 
+      className=" text-red-600 italic underline underline-offset-4 decoration-1 hover:text-blue-600 transition-colors"
+    >
+      disini
+    </Link>
+  </p>
+  <div className="mt-4 w-12 h-[1px] bg-[#1D1E20]"></div>
+</div>
+        ) : ( 
+              
           <div className="mb-16 flex flex-col lg:flex-row items-start lg:items-center gap-4 md:gap-6">
             <div className="flex rounded-full items-center justify-between border-2 border-[#1D1E20] px-3 py-2 md:min-w-[140px] gap-4">
               <p className="text-base font-semibold text-[#1D1E20] block md:hidden">Quantity</p>
@@ -380,17 +399,6 @@ console.log("Variant Aktif:", activeVariantData?.name);
                 <button onClick={() => setItemQuantity(prev => prev + 1)} className="p-1 outline-none"><FiPlus size={20}/></button>
               </div>
             </div>
-
-
-              {product.isDisplayOnly ? (
-    /* TAMPILAN JIKA DISPLAY ONLY */
-    <div className="w-full bg-slate-50 border border-slate-200 p-6 flex flex-col items-center justify-center">
-      <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#1D1E20] text-center">
-        Produk hanya tersedia di apotek
-      </p>
-      <div className="mt-2 w-8 h-[1px] bg-[#1D1E20]"></div>
-    </div>
-  ) : (
                 <div className="flex w-full md:flex-1 gap-4">
 
               {/* Tombol Add To Cart */}
@@ -412,8 +420,8 @@ console.log("Variant Aktif:", activeVariantData?.name);
                 <span className="uppercase text-xs md:text-sm">BUY NOW</span>
               </button>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Information Section (Base UI Collapsible) */}
           <div className="border-t border-black">
@@ -448,7 +456,7 @@ console.log("Variant Aktif:", activeVariantData?.name);
       <div className="mx-4 md:mx-18 mb-8">
         <h1 className="txt-mobile-h1 md:txt-h1 uppercase">While You Are Still Here</h1>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 px-4 lg:px-16">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 px-4 lg:px-16">
         {randomProducts.map(([rid, rdata]: any) => (
           <Product key={rid} id={rid} {...rdata} />
         ))}

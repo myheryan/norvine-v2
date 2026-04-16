@@ -29,7 +29,7 @@ const [orderData, setOrderData] = useState({
   items: [] as any[], 
   subtotal: 0, 
   discount: 0,
-  appliedPromo: null as any // Inisialisasi dengan null agar modal tahu belum ada promo
+  appliedPromo: null as any 
 })
 
   const [address, setAddress] = useState({
