@@ -26,7 +26,6 @@ export default function OrderDetailPage() {
     if (!router.isReady || !id) return;
 
     const fetchOrder = async () => {
-      setLoading(true);
       try {
         const res = await fetch(`/api/user/orders/${id}`);
         if (res.ok) {

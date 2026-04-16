@@ -323,7 +323,7 @@ export default function FindUsLanding() {
           {/* Section 2: Mitra Apotek Norvine Mobile - LEBIH KOMPLEKS */}
           <div className="px-5">
             {/* Sticky Search Bar area */}
-            <div className="sticky top-[64px] z-20 bg-[#FAFAFA] pt-2 pb-4 shadow-[0_10px_10px_-10px_rgba(0,0,0,0.05)]">
+            <div className="sticky top-0 z-20 bg-[#FAFAFA] pt-2 pb-4 shadow-[0_10px_10px_-10px_rgba(0,0,0,0.05)]">
               <h2 className="text-sm font-bold tracking-widest uppercase text-slate-800 mb-3 flex items-center gap-2">
                 <FiMap size={16} /> MITRA APOTEK
               </h2>

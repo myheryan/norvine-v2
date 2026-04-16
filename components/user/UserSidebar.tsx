@@ -55,8 +55,8 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
           ==================================================================== */}
       <aside className="hidden lg:flex w-72 shrink-0 flex-col h-[calc(100vh-80px)] sticky top-0 px-6 py-8 border-r border-zinc-100">
         {/* User Card */}
-        <div className="flex items-center gap-4 px-3 mb-10 py-4 rounded-3xl bg-zinc-50/80 border border-zinc-100 shadow-sm">
-          <Avatar className="h-14 w-14 rounded-2xl border-2 border-white shadow-sm overflow-hidden">
+        <div className="flex items-center gap-4 px-3 mb-10 py-4 rounded-3xl">
+          <Avatar className="h-14 w-14 border-0  overflow-hidden">
             <AvatarImage src={userImageUrl} className="object-cover" />
             <AvatarFallback className="bg-zinc-900 text-white font-bold text-sm">
               {userInitials}
@@ -66,8 +66,8 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
             <span className="text-base font-bold text-zinc-900 truncate tracking-tight">
               {userName}
             </span>
-            <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest truncate">
-              Premium Member
+            <span className="text-[10px] text-zinc-500 tracking-widest truncate">
+              {userEmail}
             </span>
           </div>
         </div>
@@ -170,47 +170,70 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
         </div>
       </aside>
 
-      {/* ====================================================================
-          MOBILE BOTTOM NAVIGATION (Ala Telegram)
+{/* ====================================================================
+          MOBILE FLOATING NAVIGATION (Identik Gambar Referensi)
           ==================================================================== */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-zinc-100 px-6 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
-        <nav className="flex items-center justify-between max-w-md mx-auto">
-          {USER_MENU.slice(0, 4).map((group, idx) => {
+      <div className="lg:hidden fixed bottom-3 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-md">
+        <nav className="bg-white border border-zinc-100 rounded-full px-2 py-1 shadow-[0_10px_40px_rgba(0,0,0,0.08)] flex items-end justify-between overflow-hidden">
+          
+          {USER_MENU.slice(0, 3).map((group, idx) => {
             const isActive = pathname === group.href || group.submenu?.some(sub => pathname === sub.href);
+            
             return (
               <Link 
                 key={`mobile-nav-${idx}`}
                 href={group.href || (group.submenu ? group.submenu[0].href : "#")}
                 className={cn(
-                  "flex flex-col items-center gap-1 transition-all relative px-2",
-                  isActive ? "text-zinc-900" : "text-zinc-400"
+                  "relative flex flex-col items-center justify-end flex-1 pt-2 transition-all duration-300 rounded-full",
+                  isActive ? "bg-[#EBF5FF]" : "bg-transparent" // Background biru muda saat aktif
                 )}
               >
-                <div className={cn("p-1.5 rounded-xl transition-all", isActive && "bg-zinc-100")}>
-                  <group.icon size={22} strokeWidth={isActive ? 2.5 : 2} />
+                {/* Icon Container with Badge */}
+                <div className="relative ">
+                  <group.icon 
+                    size={14} 
+                    strokeWidth={isActive ? 2.5 : 2} 
+                    className={isActive ? "text-[#2489CE]" : "text-zinc-800"} 
+                  />
+                  
+                  {/* Badge Notifikasi ala Telegram (Hanya contoh di item pertama) */}
+                  {idx === 0 && (
+                    <div className="absolute -top-2 -right-3 bg-[#2489CE] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#EBF5FF]">
+                      13
+                    </div>
+                  )}
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-tighter">
-                  {group.title.split(" ")[0]}
+
+                {/* Label Teks */}
+                <span className={cn(
+                  "text-[11px] font-semibold tracking-tight transition-colors",
+                  isActive ? "text-[#2489CE]" : "text-zinc-800"
+                )}>
+                  {group.title}
                 </span>
-                {isActive && <span className="absolute -top-1 w-1 h-1 rounded-full bg-zinc-900" />}
               </Link>
             );
           })}
 
-          {/* Trigger Drawer Profile */}
+          {/* User Profile / Menu Section */}
           <button 
             onClick={() => setIsMobileOpen(true)}
-            className="flex flex-col items-center gap-1 text-zinc-400"
+            className="relative flex flex-col items-center justify-center flex-1 transition-all duration-300 rounded-full"
           >
-            <div className="p-1.5">
-              <Avatar className="h-6 w-6 rounded-lg border border-zinc-200 overflow-hidden">
-                <AvatarImage src={userImageUrl} className="object-cover" />
-                <AvatarFallback className="text-[8px] bg-zinc-900 text-white">
-                  {userInitials}
-                </AvatarFallback>
-              </Avatar>
+            <div className="relative">
+              {/* Avatar dengan background hijau (mirip inisial 'C' di gambar) */}
+              <div className="h-[24px] w-[24px] rounded-full flex items-center justify-center border border-zinc-100 overflow-hidden">
+                 {userImageUrl ? (
+                    <img src={userImageUrl} className="h-full w-full object-cover" alt="Profile" />
+                 ) : (
+                    <span className="text-[11px] text-white font-bold">{userInitials || 'C'}</span>
+                 )}
+              </div>
             </div>
-            <span className="text-[10px] font-bold uppercase tracking-tighter">Menu</span>
+
+            <span className="text-[11px] font-bold text-zinc-800 tracking-tight">
+              Navigation
+            </span>
           </button>
         </nav>
       </div>

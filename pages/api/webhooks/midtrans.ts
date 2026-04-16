@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 1. Tambahkan pesan refund di dictionary notes
     const statusNotes: Record<string, string> = {
-      settlement: "Pembayaran berhasil diverifikasi. Pesanan kamu sedang diproses.",
+      settlement: "Pembayaran berhasil diverifikasi. Pesanan akan segera diproses.",
       capture_accept: "Pembayaran kartu kredit berhasil diterima. Pesanan sedang diproses.",
       capture_challenge: "Pembayaran sedang ditinjau oleh sistem keamanan Midtrans.",
       pending: "Menunggu pembayaran dari pelanggan.",
