@@ -7,7 +7,6 @@ import { FiFacebook, FiInstagram, FiLinkedin } from 'react-icons/fi'
 import { useIsVisible } from 'react-is-visible'
 
 import { NavbarContext } from './context/NavbarContext'
-import { NorvineLogo } from './icons'
 import { Mobile, Desktop } from './responsive'
 
 export default function Footer() {
@@ -25,7 +24,7 @@ export default function Footer() {
     <>
       <Desktop>
         <div className="flex snap-start flex-col bg-[#1D1E20] px-32 pt-16">
-          <div className="mb-16 flex flex-row border-b border-[#777777] border-opacity-50 pb-16">
+          <div className="mb-16 flex flex-row border-b border-[#777777] border-opacity-50 pb-7">
             <div className="flex flex-1 flex-row justify-between">
               <div>
                 <div className="mb-8">
@@ -43,7 +42,7 @@ export default function Footer() {
                   <FiLinkedin size={24} color="#FCFCFC" />
                 </div>
               </div>
-              <div className="txt-body flex flex-col space-y-8 text-[#FCFCFC]">
+              <div className="txt-body flex flex-col space-y-3 text-[#FCFCFC]">
                 <Link href="/our-products" ref={nodeRef}>
                   Our products
                 </Link>
@@ -78,7 +77,7 @@ export default function Footer() {
                     <h5 className="txt-h5 font-bold text-[#1D1E20]">KIRIM</h5>
                   </button>
                 </div>
-                <div className="txt-body flex flex-col space-y-8 text-[#FCFCFC]">
+                <div className="txt-body flex flex-col space-y-3 text-[#FCFCFC]">
                   <Link href="/faq">
                     FAQ
                   </Link>
@@ -92,7 +91,7 @@ export default function Footer() {
               </div>
             </div>
           </div>
-          <div className="txt-body mb-16">
+          <div className="txt-body mb-5">
             <p className="mb-7 font-bold text-[#FCFCFC]">Disclaimer</p>
             <p className="text-sm text-[#E0E0E0]">
               Kami berusaha untuk memastikan bahwa informasi produk pada situs
@@ -114,13 +113,13 @@ export default function Footer() {
               kondisi kesehatan apapun.
             </p>
           </div>
-          <div className="txt-body mb-20">
+          <div className="txt-body mb-5">
             <p className="text-[#FCFCFC]">© 2026 Norvine</p>
           </div>
         </div>
       </Desktop>
       <Mobile>
-        <div className="flex snap-start flex-col space-y-8 bg-[#1D1E20] px-4">
+        <div className="flex snap-start flex-col space-y-3 bg-[#1D1E20] px-4">
           <div className="flex flex-col border-b border-[#777777] border-opacity-50 pb-8">
             <div className="relative my-8 flex h-12 w-full items-center justify-center">
               <Image
@@ -137,7 +136,7 @@ export default function Footer() {
               <FiLinkedin size={24} color="#FCFCFC" />
             </div>
 
-            <div className="txt-mobile-body my-8 flex flex-col items-center justify-center space-y-8 text-[#FCFCFC]">
+            <div className="txt-mobile-body my-8 flex flex-col items-center justify-center space-y-3 text-[#FCFCFC]">
               <Link href="/our-products" ref={nodeRef}>
                 Our products
               </Link>
@@ -154,7 +153,7 @@ export default function Footer() {
                 Contact us
               </Link>
             </div>
-            <div className="my-8 flex flex-col items-center space-y-4">
+            <div className="my-8 flex flex-col items-center space-y-3">
               <p className="txt-mobile-body text-[#FCFCFC]">
                 Subscribe to our newsletter!
               </p>
@@ -174,7 +173,7 @@ export default function Footer() {
               </div>
             </div>
 
-            <div className="txt-mobile-body my-8 flex flex-col items-center justify-center space-y-8 text-[#FCFCFC]">
+            <div className="txt-mobile-body my-8 flex flex-col items-center justify-center space-y-3 text-[#FCFCFC]">
               <Link href="/faq">
                 FAQ
               </Link>
@@ -187,7 +186,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="txt-mobile-body flex flex-col items-center space-y-8">
+          <div className="txt-mobile-body flex flex-col items-center space-y-3">
             <p className="text-[#FCFCFC]">Disclaimer</p>
 
             <div className="text-justify text-sm text-[#E0E0E0]">

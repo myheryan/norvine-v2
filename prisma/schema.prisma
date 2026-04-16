@@ -109,6 +109,7 @@ model Product {
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   isAvailable          Boolean  @default(true)
+  isDisplayOnly        Boolean          @default(false)
   
   variants   ProductVariant[]
   orderItems OrderItem[]

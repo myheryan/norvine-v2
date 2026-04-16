@@ -3,7 +3,6 @@
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
-import { Collapsible } from '@base-ui/react';
 import { MdOutlineKeyboardArrowLeft, MdOutlineShoppingBag } from 'react-icons/md'
 import { FiMinus, FiPlus, FiShoppingBag, FiShoppingCart, FiZap } from 'react-icons/fi'
 
@@ -23,6 +22,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { InfoCollapsible } from '@/components/ui/InfoCollapsible'
 
 // --- 1. GET STATIC PATHS ---
 export async function getStaticPaths() {
@@ -73,6 +73,8 @@ export async function getStaticProps({
 
   const product = {
     ...productDb,
+    isDisplayOnly: Boolean(productDb.isDisplayOnly),
+    images: productDb.images || [],
     thumbnailUrl: productDb.thumbnailUrl,
     createdAt: productDb.createdAt.toISOString(),
     updatedAt: productDb.updatedAt.toISOString(),
@@ -80,6 +82,7 @@ export async function getStaticProps({
     quantity: productDb.variants.map(v => v.name),
     variants: productDb.variants.map(v => ({
       ...v,
+      imageUrl: v.imageUrl,
       createdAt: v.createdAt.toISOString(),
       updatedAt: v.updatedAt.toISOString(),
     })),
@@ -89,6 +92,8 @@ export async function getStaticProps({
     isUsageAndDose: (productDb as any).isUsageAndDose || false,
   }
 
+  console.log(product.isDisplayOnly)
+  
   const allOtherProducts = await prisma.product.findMany({
     where: { id: { not: productId } },
     include: { variants: true } 
@@ -127,7 +132,8 @@ export async function getStaticProps({
   }
 }
 
-// --- 3. KOMPONEN UTAMA ---
+
+
 export default function ProductDetail({
   product,
   randomProducts,
@@ -140,19 +146,18 @@ export default function ProductDetail({
   const router = useRouter()
   const { id } = router.query
 
+  // 1. STATE & HOOKS AWAL
   const defaultQuantity = useMemo(() => {
     if (!product || !Array.isArray(product.quantity)) return undefined;
-    
     const matchedQuantity = product.quantity.find(
       (q: string) => q.toLowerCase().replace(/\s+/g, '-') === initialUrlQuantity
     );
-    
     return matchedQuantity || product.quantity[0];
   }, [product, initialUrlQuantity]);
 
-  let [activeQuantity, setActiveQuantity] = useState<string | undefined>(defaultQuantity)
-  let [itemQuantity, setItemQuantity] = useState(1)
-  let [isAdded, setIsAdded] = useState(false)
+  const [activeQuantity, setActiveQuantity] = useState<string | undefined>(defaultQuantity)
+  const [itemQuantity, setItemQuantity] = useState(1)
+  const [isAdded, setIsAdded] = useState(false)
   const { addToCart } = useCart()
 
   useEffect(() => {
@@ -165,49 +170,64 @@ export default function ProductDetail({
     }
   }, [product, initialUrlQuantity]);
 
+  // 2. LOGIKA VARIAN AKTIF (Harus di atas productUrls)
   const activeVariantData = useMemo(() => {
     if (!product || !product.variants) return null;
     return product.variants.find((v: any) => v.name === activeQuantity) || product.variants[0];
   }, [product, activeQuantity]);
 
-  // --- LOGIKA BARCODE AMAN ---
+  // 3. LOGIKA GAMBAR CAROUSEL (Dinamis berdasarkan varian)
+  const productUrls = useMemo(() => {
+    const allImages: string[] = [];
+
+    // Prioritas 1: Gambar dari Varian yang dipilih
+    if (activeVariantData?.imageUrl) {
+      allImages.push(activeVariantData.imageUrl);
+    }
+console.log("Variant Aktif:", activeVariantData?.name);
+  console.log("Gambar Pertama (Index 0):", allImages);
+    // Prioritas 2: Thumbnail Utama Produk
+    if (product.thumbnailUrl && product.thumbnailUrl !== activeVariantData?.imageUrl) {
+      allImages.push(product.thumbnailUrl);
+    }
+
+    // Prioritas 3: Array Images Tambahan
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach((img: string) => {
+        if (img !== activeVariantData?.imageUrl && img !== product.thumbnailUrl) {
+          allImages.push(img);
+        }
+      });
+    }
+
+    return allImages;
+  }, [activeVariantData, product.thumbnailUrl, product.images]);
+
+  // 4. LOGIKA LAINNYA
   const currentBarcode = useMemo(() => {
     if (!activeVariantData || !activeVariantData.barcode) return '';
-
     const barcode = activeVariantData.barcode;
-    if (typeof barcode === 'object') {
-      return barcode.code ?? ''; 
-    }
-    return String(barcode);
+    return typeof barcode === 'object' ? (barcode as any).code ?? '' : String(barcode);
   }, [activeVariantData]);
-
-  let productUrls = useMemo(() => {
-    if (activeQuantity && product) {
-      let quantityKey = replaceSpace(activeQuantity.toLowerCase())
-      return getProductUrlPath({ key: product.id, quantityKey })
-    }
-  }, [activeQuantity, product])
 
   const currentPrice = activeVariantData ? activeVariantData.price : 0;
 
-  // --- HANDLER: MASUKKAN KE KERANJANG ---
+  // --- HANDLERS ---
   const handleAddToCart = () => {
     addToCart({
       id: product.id,
       variantId: activeVariantData?.id,
       name: product.name,
       variant: activeQuantity || (Array.isArray(product.quantity) ? product.quantity[0] : ''),
-      thumbnailUrl: product.thumbnailUrl || productUrls && productUrls.length > 0 ? productUrls[0] : '',
+      thumbnailUrl: product.thumbnailUrl,
       quantity: itemQuantity,
       price: currentPrice,
       weight: activeVariantData?.weight || 0.1,
       dimensions: activeVariantData?.dimensions || { length: 5, width: 5, height: 12 }
     })
-
     setIsAdded(true)
     setTimeout(() => setIsAdded(false), 2000)
   }
-
   const handleBuyNow = () => {
     // 1. Hapus payload checkout keranjang agar checkout fokus ke item ini saja
     sessionStorage.removeItem("norvine_checkout_payload");
@@ -220,7 +240,7 @@ export default function ProductDetail({
         price: currentPrice,
         quantity: itemQuantity,
         variant: activeQuantity,
-        thumbnailUrl: product.thumbnailUrl || productUrls?.[0] || '', 
+        thumbnailUrl: product.thumbnailUrl, 
         // MENAMBAHKAN DATA LOGISTIK KE PAYLOAD BUY NOW
         weight: activeVariantData?.weight || 0.1,
         dimensions: activeVariantData?.dimensions || { length: 5, width: 5, height: 12 }
@@ -258,7 +278,7 @@ export default function ProductDetail({
       <div className="mb-8 md:mb-23 flex flex-col md:flex-row">
         <div className="w-full md:w-[48.33%]">
           <div className={`w-full md:aspect-[520/640] lg:aspect-[928/944] ${customBgColor ? 'bg-[#E6EBE9]' : 'bg-[#F3E08D]'}`}>
-            {productUrls && <ProductCarousel data={productUrls} />}
+            {productUrls && <ProductCarousel key={activeVariantData?.id || 'default'} data={productUrls} />}
           </div>
         </div>
 
@@ -348,7 +368,7 @@ export default function ProductDetail({
           </div>
 
           <div className="flex text-xl md:text-2xl lg:text-4xl font-semibold text-[#1D1E20] mb-6">
-            {formatRp(currentPrice)}
+            {formatRp(currentPrice)} 
           </div>
 
           <div className="mb-16 flex flex-col lg:flex-row items-start lg:items-center gap-4 md:gap-6">
@@ -361,7 +381,18 @@ export default function ProductDetail({
               </div>
             </div>
 
-            <div className="flex w-full md:flex-1 gap-4">
+
+              {product.isDisplayOnly ? (
+    /* TAMPILAN JIKA DISPLAY ONLY */
+    <div className="w-full bg-slate-50 border border-slate-200 p-6 flex flex-col items-center justify-center">
+      <p className="text-sm font-bold uppercase tracking-[0.2em] text-[#1D1E20] text-center">
+        Produk hanya tersedia di apotek
+      </p>
+      <div className="mt-2 w-8 h-[1px] bg-[#1D1E20]"></div>
+    </div>
+  ) : (
+                <div className="flex w-full md:flex-1 gap-4">
+
               {/* Tombol Add To Cart */}
               <button 
                 onClick={handleAddToCart} 
@@ -380,7 +411,8 @@ export default function ProductDetail({
                 <MdOutlineShoppingBag size={18} />
                 <span className="uppercase text-xs md:text-sm">BUY NOW</span>
               </button>
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Information Section (Base UI Collapsible) */}
@@ -426,22 +458,3 @@ export default function ProductDetail({
   )
 }
 
-// Sub-komponen Collapsible
-function InfoCollapsible({ title, children }: { title: string, children: React.ReactNode }) {
-  return (
-    <Collapsible.Root className="border-b border-black/10">
-      <Collapsible.Trigger className="flex w-full items-center justify-between py-6 group outline-none">
-        <span className="text-[10px] font-bold tracking-[0.3em] uppercase">{title}</span>
-        <span className="text-xl transition-transform duration-300 group-data-[state=open]:rotate-45">+</span>
-      </Collapsible.Trigger>
-      <Collapsible.Panel className="overflow-hidden transition-all duration-300 data-[state=closed]:h-0 data-[state=open]:h-auto">
-        <div className="pb-8">{children}</div>
-      </Collapsible.Panel>
-    </Collapsible.Root>
-  )
-}
-
-function getProductUrlPath({ key, quantityKey }: any) {
-  let folderPath = `/products/${key}/${quantityKey}`
-  return [`${folderPath}/front.webp`, `${folderPath}/back.webp`, `${folderPath}/back-2.webp`]
-}

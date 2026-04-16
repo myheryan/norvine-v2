@@ -19,7 +19,7 @@ export default function Product({id, thumbnailUrl, quantity, name, thumbnailDesc
 }: Props) {
 
   let [isActive, setIsActive] = useState(false);
-  const imageURL = getCloudinaryImage(thumbnailUrl, 400, 400) || `/products/${id}/${replaceSpace(quantity[0]).toLowerCase()}/front.webp`;
+  const imageURL = getCloudinaryImage(thumbnailUrl, 400, 400);
   return (
     <Link
       href={`/product/${id}/${quantity[0].toLowerCase().replace(' ', '-')}`}
