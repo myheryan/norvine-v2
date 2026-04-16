@@ -16,9 +16,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } = req.body;
 
   try {
-    // 1. Verifikasi Signature Key (Gunakan toFixed(0) untuk menghindari masalah desimal .00)
     const serverKey = process.env.MIDTRANS_SERVER_KEY || '';
-    const formattedAmount = Number(gross_amount).toFixed(0); 
+    
+    // Tetap gunakan String(gross_amount) karena kamu bilang ini yang bekerja sebelumnya
+    const formattedAmount = String(gross_amount); 
     
     const payload = `${order_id}${status_code}${formattedAmount}${serverKey}`;
     const hash = crypto.createHash('sha512').update(payload).digest('hex');
@@ -28,7 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ message: 'Invalid Signature' });
     }
 
-    // 2. Marketplace Notes Dictionary (Ditambah Refund)
+    let newStatus: OrderStatus;
+
+    // 1. Tambahkan pesan refund di dictionary notes
     const statusNotes: Record<string, string> = {
       settlement: "Pembayaran berhasil diverifikasi. Pesanan kamu sedang diproses.",
       capture_accept: "Pembayaran kartu kredit berhasil diterima. Pesanan sedang diproses.",
@@ -37,17 +40,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       deny: "Pembayaran ditolak. Silakan coba lagi dengan metode lain.",
       cancel: "Pesanan telah dibatalkan.",
       expire: "Batas waktu pembayaran habis. Pesanan otomatis dibatalkan oleh sistem.",
-      refund: "Dana telah dikembalikan sepenuhnya ke pelanggan.",
-      partial_refund: "Sebagian dana telah dikembalikan ke pelanggan."
+      refund: "Dana telah dikembalikan ke pelanggan. Proses refund selesai.",
+      partial_refund: "Sebagian dana telah dikembalikan ke pelanggan.",
     };
 
     let noteKey = transaction_status;
     if (transaction_status === 'capture') noteKey = `capture_${fraud_status}`;
     const finalNote = statusNotes[noteKey] || `Status transaksi: ${transaction_status}`;
 
-    // 3. Mapping Status ke OrderStatus
-    let newStatus: OrderStatus;
-
+    // 2. Tambahkan case refund di switch status
     switch (transaction_status) {
       case 'capture':
       case 'settlement':
@@ -58,21 +59,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
       case 'deny':
       case 'cancel':
-        newStatus = OrderStatus.CANCELLED;
-        break;
       case 'expire':
-        newStatus = OrderStatus.EXPIRED;
-        break;
-      case 'refund':
-      case 'partial_refund':
-        // Refund biasanya dianggap pesanan batal/selesai dengan pengembalian dana
-        newStatus = OrderStatus.CANCELLED; 
+      case 'refund':         // Tambahan Refund
+      case 'partial_refund': // Tambahan Partial Refund
+        newStatus = (transaction_status === 'expire') ? OrderStatus.EXPIRED : OrderStatus.CANCELLED;
         break;
       default:
         newStatus = OrderStatus.PENDING;
     }
 
-    // 4. Jalankan DB Transaction
     await prisma.$transaction(async (tx) => {
       const currentOrder = await tx.transaction.findUnique({
         where: { invoice: order_id },
@@ -81,21 +76,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!currentOrder) throw new Error("Order tidak ditemukan");
 
-      // IDEMPOTENCY GUARD
-      if (currentOrder.status === newStatus && transaction_status !== 'partial_refund') return;
-      
-      // Jangan expire pesanan yang sudah lewat tahap pembayaran
+      if (currentOrder.status === newStatus) return;
       if (['PAID', 'SHIPPED', 'COMPLETED'].includes(currentOrder.status) && newStatus === OrderStatus.EXPIRED) {
         return;
       }
 
-      // A. Update Status Utama
       await tx.transaction.update({
         where: { invoice: order_id },
         data: { status: newStatus }
       });
 
-      // B. Catat ke OrderHistory
       await tx.orderHistory.create({
         data: {
           transactionId: currentOrder.id,
@@ -104,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      // C. LOGIKA STOK: BERKURANG (Saat status berubah dari PENDING ke PAID)
+      // C. LOGIKA STOK: BERKURANG
       if (newStatus === OrderStatus.PAID && currentOrder.status === OrderStatus.PENDING) {
         for (const item of currentOrder.items) {
           if (item.variantId) {
@@ -124,12 +114,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
       
-      // D. LOGIKA STOK: KEMBALI / RESTOCK (Saat EXPIRED, CANCELLED, atau REFUND)
-      const isFailedStatus = ([OrderStatus.EXPIRED, OrderStatus.CANCELLED] as OrderStatus[]).includes(newStatus);
-      const isRefundAction = (transaction_status === 'refund' || transaction_status === 'partial_refund');
+      // D. LOGIKA STOK: KEMBALI (EXPIRED, CANCELLED, atau REFUND)
+      const isRestockStatus = ([OrderStatus.EXPIRED, OrderStatus.CANCELLED] as OrderStatus[]).includes(newStatus);
+      // Cek apakah ini aksi refund (meskipun statusnya CANCELLED)
+      const isRefundAction = transaction_status === 'refund' || transaction_status === 'partial_refund';
       
-      // Stok dikembalikan jika transaksi gagal ATAU direfund, DAN status sebelumnya adalah PAID
-      if ((isFailedStatus || isRefundAction) && currentOrder.status === OrderStatus.PAID) {
+      if ((isRestockStatus || isRefundAction) && currentOrder.status === OrderStatus.PAID) {
         for (const item of currentOrder.items) {
           if (item.variantId) {
             await tx.productVariant.update({
@@ -149,6 +139,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
+    console.log(`[MIDTRANS] Success processing Order: ${order_id} to ${newStatus}`);
     return res.status(200).json({ status: 'OK' });
 
   } catch (error: any) {

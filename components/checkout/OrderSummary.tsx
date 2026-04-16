@@ -64,7 +64,7 @@ export default function OrderSummary({
 
   // Daftar Metode Pembayaran
   const paymentMethods = [
-    // { id: 'bca_va', label: 'BCA Virtual Account', icon: 'BCA' },
+    { id: 'bca_va', label: 'BCA Virtual Account', icon: 'BCA' },
     // { id: 'mandiri_va', label: 'Mandiri Virtual Account', icon: 'MANDIRI' },
     { id: 'qris', label: 'QRIS / E-Wallet', icon: 'QRIS' },
   ];
