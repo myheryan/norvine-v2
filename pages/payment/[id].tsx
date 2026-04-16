@@ -23,6 +23,8 @@ export default function PaymentPage() {
 console.log("Data dari API:", data);
         if (res.ok) {
           setOrderData(data);
+                  setLoading(false);
+
         } else {
           toast.error("Pesanan tidak ditemukan");
           router.push('/user/orders');

@@ -15,9 +15,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!session?.user) return res.status(401).json({ error: "Silakan login." });
 
     const { 
-      orderId, grossAmount, paymentMethod, shippingService, 
+      orderId, paymentMethod, shippingService, 
       useInsurance, items, promoCode, address, recipientName, 
-      recipientPhone, district, city, totalWeight, dimensions 
+      recipientPhone, district, city, totalWeight, dimensions, notes
     } = req.body;
 
     const userId = (session.user as any).id;

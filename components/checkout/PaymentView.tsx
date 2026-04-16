@@ -14,7 +14,7 @@ interface PaymentViewProps {
 
 export default function PaymentView({ paymentData }: PaymentViewProps) {
   const router = useRouter()
-  const [timeLeft, setTimeLeft] = useState('00 jam 00 menit 00 detik')
+  const [timeLeft, setTimeLeft] = useState('')
   const [activeTab, setActiveTab] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(false)
 

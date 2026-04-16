@@ -241,10 +241,10 @@ const logistics = useMemo(() => {
 
       if (res.ok) {
         const variantIdsPembelian = payload.items.map((i: any) => i.variantId);
-        clearPurchasedItems(variantIdsPembelian);
         sessionStorage.removeItem("norvine_checkout_payload");
         localStorage.removeItem('pending_checkout');
-  
+        clearPurchasedItems(variantIdsPembelian);
+
         router.push(`/payment/${resData.transaction.invoice}`);
       } else {
         toast.error(resData.error || "Gagal memproses pembayaran");
