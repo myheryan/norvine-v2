@@ -88,7 +88,7 @@ export default function UserOrdersPage() {
       <div className="max-w-4xl mx-auto sm:px-2">
         
         {/* Tab Nav - Sekarang Berpindah Secara Instan */}
-        <div className="mt-4 z-20 bg-white shadow-sm flex border-b border-gray-100 overflow-x-auto no-scrollbar">
+        <div className="md:mt-4 bg-white shadow-sm flex border-b border-gray-100 overflow-x-auto no-scrollbar">
           {TABS.map((tab) => (
             <button
               key={tab.id}
