@@ -10,8 +10,8 @@ import HeadMeta from '@/components/HeadMeta'
 import { useSession } from 'next-auth/react'
 import { useCart, CartItem } from '@/components/context/CartContext'
 import { formatRp, getCloudinaryImage } from '@/lib/utils'
-import { CartSkeleton } from '@/components/skeleton/CartSkeleton'
 import { toast } from 'sonner'
+import LoadingScreen from "@/components/ui/LoadingScreen"
 
 const getKey = (item: CartItem) => item.variantId;
 
@@ -112,7 +112,7 @@ const handleCheckout = () => {
   }
 };
 
-  if (!isInitialized) return <CartSkeleton itemsCount={3} />
+  if (!isInitialized) return <LoadingScreen />
 
   const EmptyCart = () => (
     <div className="bg-white p-10 md:p-20 flex flex-col items-center justify-center text-center rounded-lg border border-slate-100">
