@@ -59,7 +59,7 @@ export default function PartOfUs() {
       <Mobile>
         <div
           ref={nodeMobileRef}
-          className="relative h-screen w-full snap-start snap-always"
+          className="relative  bg-zinc-950 h-screen w-full snap-start snap-always"
         >
           <div className="absolute -z-40 h-screen w-full bg-black"></div>
           <div className="absolute -z-30 h-screen w-full opacity-40">

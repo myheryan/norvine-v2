@@ -206,7 +206,7 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
 
                 {/* Label Teks */}
                 <span className={cn(
-                  "text-[11px] font-semibold tracking-tight transition-colors",
+                  "text-[12px] font-semibold tracking-tight transition-colors",
                   isActive ? "text-orange-500" : "text-zinc-800"
                 )}>
                   {group.title}
