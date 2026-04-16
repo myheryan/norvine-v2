@@ -15,7 +15,7 @@ export default function LoadingScreen() {
           <div className="absolute inset-0 border-[2px] border-zinc-100 border-t-black rounded-full animate-logo-rotate" />
           
           {/* Logo N di Tengah yang berdenyut (Pulse) - DIBUAT LEBIH KECIL (w-8 h-8) */}
-          <div className="animate-n-pulse flex items-center justify-center">
+          <div className="animate-spin flex items-center justify-center">
             <svg
               viewBox="0 0 100 100"
               className="w-12 h-12 fill-black"

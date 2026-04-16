@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { toast } from 'sonner'
-import { FiChevronDown, FiArrowLeft, FiLoader } from 'react-icons/fi'
+import { FiChevronDown, FiArrowLeft, FiLoader, FiCopy } from 'react-icons/fi'
 import { formatRp } from '@/lib/utils'
-import { ClipboardCopy } from 'lucide-react'
 import Image from 'next/image'
 
 interface PaymentViewProps {
@@ -14,7 +13,7 @@ interface PaymentViewProps {
 
 export default function PaymentView({ paymentData }: PaymentViewProps) {
   const router = useRouter()
-  const [timeLeft, setTimeLeft] = useState('')
+  const [timeLeft, setTimeLeft] = useState('0 jam 0 menit 0 detik')
   const [activeTab, setActiveTab] = useState<string | null>(null)
   const [isChecking, setIsChecking] = useState(false)
 
@@ -139,7 +138,7 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
                   {vaNumber}
                 </span>
                 <button onClick={handleCopy} className="text-cyan-500 hover:text-cyan-600">
-                  <ClipboardCopy size={16}/>
+                  <FiCopy size={16}/>
                 </button>
               </div>
             </div>
@@ -204,7 +203,7 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
 
         {/* Polling Loader */}
         <div className="flex items-center justify-center gap-2 py-4">
-          <FiLoader className={`${isChecking ? 'animate-spin' : ''} text-orange-500`} size={14} />
+          <FiLoader className={`animate-spin text-orange-500`} size={14} />
           <span className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">
             Menunggu konfirmasi otomatis
           </span>
