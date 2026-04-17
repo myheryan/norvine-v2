@@ -1,126 +1,121 @@
-import  { useState, } from 'react';
-import { FiArrowLeft, FiArrowRight, FiCommand } from 'react-icons/fi';
+import React, { useState } from 'react';
+import { Mail, ArrowLeft, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Button, Input } from '@/components/ui/baseInput' 
+import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
-const NorvineForgotPassword = () => {
-  const [step, setStep] = useState(1);
+const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error' | null; msg: string }>({ 
+    type: null, 
+    msg: '' 
+  });
 
-  const nextStep = () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      setStep(step + 1);
-    }, 800);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setStatus({ type: null, msg: '' });
+
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Terjadi kesalahan');
+
+      setStatus({ 
+        type: 'success', 
+        msg: 'Berhasil! Tautan reset telah dikirim ke email Anda.' 
+      });
+      setEmail(''); 
+
+    } catch (error: any) {
+      setStatus({ type: 'error', msg: error.message });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center p-4 font-sans antialiased text-[#1a1a1a]">
-      {/* Container Utama - Super Compact & Sharp */}
-      <div className="w-full max-w-[380px] bg-white border border-black/[0.08] shadow-[0_12px_40px_-12px_rgba(0,0,0,0.08)] rounded-xl overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4 font-sans text-black">
+      <div className="w-full max-w-[450px] bg-white border border-zinc-200 rounded-none overflow-hidden shadow-none">
         
-        {/* Top Header / Brand Mark */}
-        <div className="pt-8 px-8 flex justify-between items-center">
-          <div className="h-8 w-8 bg-black rounded-lg flex items-center justify-center">
-            <FiCommand className="text-white text-lg" />
-          </div>
-          <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-black/40">Step 0{step} / 03</span>
+        {/* Header Section - Selaras dengan Password Page */}
+        <div className="p-3 bg-zinc-50 border-b border-zinc-100 flex items-center gap-3">
+          <Mail size={18} className="text-black" />
+          <h2 className="text-lg font-black text-black tracking-tighter italic">Lupa Sandi</h2>
         </div>
 
-        <div className="p-8 pt-6">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-xl font-bold tracking-tight mb-1">
-              {step === 1 && "Reset Access"}
-              {step === 2 && "Verification"}
-              {step === 3 && "Secure Account"}
-            </h1>
-            <p className="text-xs text-black/50 leading-relaxed">
-              {step === 1 && "Enter your identity to receive a secure link."}
-              {step === 2 && "A 6-digit code has been sent to your inbox."}
-              {step === 3 && "Establish a new high-security password."}
-            </p>
-          </div>
+        <div className="p-6 md:p-10">
+          {/* Inline Notification */}
+          {status.type && (
+            <div className={cn(
+              "mb-6 p-3 flex items-center gap-3 text-[11px] font-bold tracking-wider",
+              status.type === 'success' ? "bg-black text-white" : "bg-red-50 text-red-600 border border-red-100"
+            )}>
+              {status.type === 'success' ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+              <span className="leading-tight">{status.msg}</span>
+            </div>
+          )}
 
-          <div className="space-y-4">
-            {/* Step 1: Identity */}
-            {step === 1 && (
-              <div className="group transition-all">
-                <input
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+            {/* Trik mematikan popup password browser */}
+            <input type="text" name="prevent_autofill" className="hidden" tabIndex={-1} aria-hidden="true" />
+            <input type="password" name="password_fake" className="hidden" tabIndex={-1} aria-hidden="true" />
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-zinc-500 text-sm font-semibold">
+                Alamat Email
+              </Label>
+              <div className="relative">
+                <Input
+                  id="email"
                   type="email"
-                  placeholder="Email address"
-                  className="w-full h-11 bg-[#F9F9FB] border border-black/[0.05] rounded-lg px-4 text-sm focus:bg-white focus:border-black outline-none transition-all placeholder:text-black/30"
+                  required
+                  autoComplete="off"
+                  value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Masukkan email terdaftar"
+                  className="rounded-none border-zinc-300 h-10 text-xs pl-10 shadow-none focus-visible:ring-black"
+                  disabled={isLoading}
                 />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
               </div>
-            )}
+              <p className="text-[10px] text-zinc-400 italic mt-1 leading-tight font-medium">
+                Tautan pengaturan ulang kata sandi akan dikirimkan ke email ini.
+              </p>
+            </div>
 
-            {/* Step 2: OTP - Compact Grid */}
-            {step === 2 && (
-              <div className="flex justify-between gap-2">
-                {[...Array(6)].map((_, i) => (
-                  <input
-                    key={i}
-                    type="text"
-                    maxLength={1}
-                    className="w-full h-12 bg-[#F9F9FB] border border-black/[0.05] rounded-lg text-center font-bold text-sm focus:border-black focus:bg-white outline-none transition-all"
-                  />
-                ))}
-              </div>
-            )}
+            <div className="pt-2">
+              <Button
+                type="submit"
+                disabled={isLoading || !email}
+                className="w-full bg-black hover:bg-zinc-800 text-white font-bold h-11 rounded-none text-base font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-none"
+              >
+                {isLoading ? <Loader2 className="animate-spin" size={14} /> : "Kirim Link Reset"}
+              </Button>
+            </div>
+          </form>
 
-            {/* Step 3: New Pass */}
-            {step === 3 && (
-              <div className="space-y-3">
-                <input
-                  type="password"
-                  placeholder="New password"
-                  className="w-full h-11 bg-[#F9F9FB] border border-black/[0.05] rounded-lg px-4 text-sm focus:border-black focus:bg-white outline-none transition-all"
-                />
-                <input
-                  type="password"
-                  placeholder="Confirm password"
-                  className="w-full h-11 bg-[#F9F9FB] border border-black/[0.05] rounded-lg px-4 text-sm focus:border-black focus:bg-white outline-none transition-all"
-                />
-              </div>
-            )}
-
-            {/* Action Button */}
-            <button
-              onClick={nextStep}
-              className="w-full h-11 bg-black hover:bg-[#222] text-white rounded-lg text-[13px] font-bold transition-all flex items-center justify-center gap-2 group shadow-lg shadow-black/5"
+          {/* Footer Link */}
+          <div className="mt-8 pt-5 border-t border-zinc-50 flex justify-center">
+            <Link 
+              href="/login" 
+              className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 hover:text-black transition-colors"
             >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>{step === 3 ? "Complete Reset" : "Continue"}</span>
-                  <FiArrowRight className="group-hover:translate-x-1 transition-transform" />
-                </>
-              )}
-            </button>
-          </div>
-
-          {/* Footer Navigation */}
-          <div className="mt-10 pt-6 border-t border-black/[0.03] flex items-center justify-between">
-            <a href="/auth/login" className="text-[11px] font-bold text-black/40 hover:text-black flex items-center gap-2 transition-colors uppercase tracking-wider">
-              <FiArrowLeft /> Back to login
-            </a>
-            {step === 2 && (
-              <button className="text-[11px] font-bold text-black hover:underline uppercase tracking-wider">
-                Resend
-              </button>
-            )}
+              <ArrowLeft size={12} />
+              Kembali ke Login
+            </Link>
           </div>
         </div>
-      </div>
-
-      {/* Background Decor - Subtle Branding */}
-      <div className="fixed bottom-8 right-8 pointer-events-none opacity-[0.03] select-none">
-        <h1 className="text-[120px] font-black leading-none">NORVINE</h1>
       </div>
     </div>
   );
 };
 
-export default NorvineForgotPassword;
+export default ForgotPasswordPage;

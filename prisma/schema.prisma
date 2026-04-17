@@ -22,6 +22,8 @@ model User {
   updatedAt     DateTime? @default(now()) @updatedAt
   password      String?
   lastLoginAt   DateTime? @default(now())
+  resetToken      String?   @unique
+  resetTokenExpiry DateTime?
 
   accounts         Account[]
   addresses        Address[]
