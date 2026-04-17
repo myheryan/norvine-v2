@@ -110,7 +110,7 @@ export default function Verify() {
               
             />
           </div>
-          <div className="mt-[11.43rem] pr-18 pl-16">
+          <div className="mt-[3.43rem] px-16 pr-18">
             <h1 ref={nodeRef} className="txt-h1 mb-8 text-[#1D1E20]">
               VERIFIKASI PRODUK <br /> NORVINE
             </h1>
