@@ -55,7 +55,7 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
           ==================================================================== */}
       <aside className="hidden lg:flex w-72 shrink-0 flex-col h-[calc(100vh-80px)] sticky top-0 px-6 py-8 border-r border-zinc-100">
         {/* User Card */}
-        <div className="flex items-center gap-4 px-3 mb-10 py-4 rounded-3xl">
+        <div className="flex items-center gap-4 px-3 mb-4 py-4 rounded-3xl">
           <Avatar className="h-14 w-14 border-0  overflow-hidden">
             <AvatarImage src={userImageUrl} className="object-cover" />
             <AvatarFallback className="bg-zinc-900 text-white font-bold text-sm">
@@ -73,18 +73,18 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
         </div>
 
         {/* Desktop Nav */}
-        <nav className="flex-1 space-y-2 overflow-y-auto no-scrollbar">
+        <nav className="flex-1 px-4 overflow-y-auto no-scrollbar">
           {USER_MENU.map((group, index) => {
             const isOpen = openMenus.includes(group.title);
             const isGroupActive = group.submenu?.some(sub => pathname === sub.href) || pathname === group.href;
 
             return (
-              <div key={`desktop-group-${group.title}-${index}`} className="mb-2">
+              <div key={`desktop-group-${group.title}-${index}`}>
                 {group.submenu ? (
                   <button 
                     onClick={() => toggleMenu(group.title)}
                     className={cn(
-                      "flex items-center justify-between w-full p-2 rounded-2xl transition-all group",
+                      "flex items-center justify-between w-full rounded-2xl transition-all group",
                       isOpen ? "bg-zinc-100/50" : "hover:bg-zinc-50"
                     )}
                   >
@@ -111,7 +111,7 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
                   <Link 
                     href={group.href || "#"}
                     className={cn(
-                      "flex items-center gap-3 w-full p-2 rounded-2xl transition-all",
+                      "flex items-center gap-3 w-full py-2 rounded-2xl transition-all",
                       isGroupActive ? "bg-zinc-100/50" : "hover:bg-zinc-50"
                     )}
                   >
@@ -132,7 +132,7 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
 
                 <div className={cn(
                   "overflow-hidden transition-all duration-300 ease-in-out pl-12 space-y-1",
-                  isOpen && group.submenu ? "max-h-60 opacity-100 py-2" : "max-h-0 opacity-0"
+                  isOpen && group.submenu ? "max-h-60 opacity-100" : "max-h-0 opacity-0"
                 )}>
                   {group.submenu?.map((sub, subIndex) => {
                     const isActive = pathname === sub.href;
@@ -141,7 +141,7 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
                         key={`desktop-sub-${sub.label}-${subIndex}`} 
                         href={sub.href} 
                         className={cn(
-                          "flex items-center gap-3 py-1.5 text-sm transition-all relative group",
+                          "flex items-center gap-3 py-1 text-sm transition-all relative group",
                           isActive ? "text-zinc-900 font-bold" : "text-zinc-500 hover:text-zinc-900"
                         )}
                       >
