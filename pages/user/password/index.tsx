@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, ShieldCheck, Lock, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Button } from '@/components/ui/button'; 
-import { Input } from '@/components/ui/input';   
+import { Button, Input } from '@/components/ui/baseInput'; 
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 

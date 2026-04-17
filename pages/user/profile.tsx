@@ -7,6 +7,7 @@ import ProfileForm from "@/components/user/ProfileForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
+import { CgProfile } from "react-icons/cg";
 
 export async function getServerSideProps(context: any) {
   const session = await getServerSession(context.req, context.res, authOptions);
@@ -60,9 +61,10 @@ export default function ProfilePage({ user }: { user: any }) {
 
   return (
     <div className="container mx-auto md:py-10 max-w-[1200px]">
-      <div className="bg-white">
-        <div className="p-3 bg-sky-50 border-b border-slate-100">
-          <h2 className="text-2xl font-black uppercase tracking-tight">Profil Saya</h2>
+      <div className="bg-white rounded-none border border-zinc-200 overflow-hidden shadow-none">
+        <div className="p-3 bg-zinc-50 border-b border-zinc-100 flex items-center gap-3">
+          <CgProfile size={18} className="text-black" />
+          <h2 className="text-lg font-black tracking-tight">Profil Saya</h2>
         </div>
         <div className="p-6 md:p-10 flex flex-col-reverse lg:flex-row gap-12 lg:gap-20">
           <ProfileForm user={user} />

@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import AddressManager from "@/components/user/AddressManager";
-import { MapPin, Plus, Trash2, Edit3, CheckCircle2 } from "lucide-react";
+import { MapPin, Plus, Trash2, Edit3, CheckCircle2, MapPinSearch } from "lucide-react";
 import { toast } from "sonner";
 import { displayPhoneNumber } from "@/lib/utils";
 
@@ -90,10 +90,15 @@ export default function AddressPage({ addresses }: { addresses: any[] }) {
   };
 
   return (
-      <div className="max-w-4xl mx-auto md:px-4 md:py-8">
+
+    <div className="max-w-4xl mx-auto md:px-4 md:py-6">
+      <div  className="bg-white rounded-none border border-zinc-200 overflow-hidden shadow-none">
         {/* Header */}
-        <div className="px-6 py-3 z-10 flex justify-between items-center bg-blue-50 backdrop-blur-md">
-          <h1 className="text-xl font-bold text-zinc-900 tracking-tight">Alamat Saya</h1>
+        <div className="px-3 z-10 flex justify-between items-center bg-zinc-50 backdrop-blur-md">
+          <div className="p-3 bg-zinc-50 border-b border-zinc-100 flex items-center gap-3">
+            <MapPinSearch size={18} className="text-black" />
+            <h2 className="text-lg font-black text-black tracking-tighter">Alamat Saya</h2>
+          </div>
           <button 
             onClick={openAddModal}
             className="flex items-center gap-2 bg-black text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-zinc-800 transition-all shadow-lg active:scale-95"
@@ -182,6 +187,8 @@ export default function AddressPage({ addresses }: { addresses: any[] }) {
         initialData={selectedAddress}
       />
       </div>
+    </div>
+
 
 
   );
