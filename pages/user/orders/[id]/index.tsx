@@ -219,8 +219,8 @@ export default function OrderDetailPage() {
                 {order.insuranceCost > 0 && (
                   <tr>
                     <td className="text-right">Asuransi</td>
-                    <td className="text-right text-red-500">
-                      -{formatRp(order.insuranceCost)}
+                    <td className="text-right text-gray-800">
+                      {formatRp(order.insuranceCost)}
                     </td>
                   </tr>
                 )}
