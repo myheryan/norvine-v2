@@ -163,7 +163,7 @@ export default function CartPage() {
                             </div>
                             <div className="flex-1">
                               <h3 className="text-sm font-bold mb-1 line-clamp-2 text-slate-800">{item.name}</h3>
-                              <p className="text-[10px] text-slate-400 mb-2 tracking-widest uppercase font-bold italic">Varian: {item.variant}</p>
+                              <p className="text-[10px] text-slate-400 mb-2 italic">Varian: {item.variant}</p>
                               {isOutOfStock ? <p className="text-[10px] text-red-500 font-bold italic uppercase">Stok Habis</p> : <p className="font-bold text-base text-zinc-950">{formatRp(item.price)}</p>}
                             </div>
                             <div className="flex flex-col items-end justify-between py-1">
