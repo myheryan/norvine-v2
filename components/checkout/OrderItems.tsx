@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from "next/image"
-import { formatRp, getCloudinaryImage } from '@/lib/utils'
+import { cn, formatRp, getCloudinaryImage } from '@/lib/utils'
 import { FiTruck, FiChevronDown, FiCheck, FiEdit3, FiShield, FiLoader, FiAlertCircle } from 'react-icons/fi'
 
 interface OrderItemsProps {
@@ -199,19 +199,58 @@ export default function OrderItems({
           </div>
         </div>
 
-        <div 
-          className={`p-5 border transition-all flex items-center justify-between ${useInsurance ? 'border-emerald-600 bg-emerald-50/30' : 'border-zinc-100 bg-white'}`}
+<div 
+  onClick={() => setUseInsurance(!useInsurance)}
+  className={cn(
+    "p-4 border transition-all flex items-center justify-between cursor-pointer select-none",
+    useInsurance 
+      ? "border-black bg-zinc-50" 
+      : "border-zinc-200 bg-white"
+  )}
+>
+  <div className="flex items-center gap-4">
+    <div className={cn(
+      "transition-colors",
+      useInsurance ? "text-black" : "text-zinc-300"
+    )}>
+      <FiShield size={20} />
+    </div>
+    <div className="space-y-0.5">
+      <h4 className="text-sm font-bold text-black uppercase tracking-tight">Asuransi Pengiriman</h4>
+      <p className="text-[11px] text-zinc-500 leading-tight">
+        Proteksi penuh dari kerusakan & kehilangan barang
+      </p>
+    </div>
+  </div>
+
+  {/* Custom Checkbox Sharp Edge */}
+  <div className="flex items-center">
+    <div className={cn(
+      "w-5 h-5 border flex items-center justify-center transition-all duration-200",
+      useInsurance 
+        ? "bg-black border-black" 
+        : "bg-white border-zinc-300"
+    )}>
+      {useInsurance && (
+        <svg 
+          className="w-3.5 h-3.5 text-white" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor" 
+          strokeWidth={4}
         >
-          <div className="flex items-center gap-4">
-            <div className={`${useInsurance ? 'text-emerald-600' : 'text-zinc-300'}`}>
-              <FiShield size={24} />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-zinc-900">Asuransi Pengiriman</h4>
-              <p className="text-sm text-zinc-600 font-medium">Proteksi penuh dari kerusakan & kehilangan</p>
-            </div>
-          </div>
-        </div>
+          <path d="M5 13l4 4L19 7" />
+        </svg>
+      )}
+    </div>
+    <input 
+      type="checkbox" 
+      className="hidden" 
+      checked={useInsurance} 
+      onChange={() => {}} // Di handle oleh parent div onClick
+    />
+  </div>
+</div>
       </div>
     </div>
   );

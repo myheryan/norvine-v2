@@ -1,11 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { coreApi } from '@/lib/midtrans';
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from '@/lib/auth';
 import { NORVINE_CONFIG } from '@/types/norvine-default';
+import { processPayment } from '@/lib/payment-service';
 
 const PLATFORM_SERVICE_FEE = NORVINE_CONFIG.SERVICE_FEE;
+const PLATFORM_INSURANCE = NORVINE_CONFIG.INSURANCE_RATE;
+
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
@@ -15,18 +17,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!session?.user) return res.status(401).json({ error: "Silakan login." });
 
     const { 
-      orderId, paymentMethod, shippingService, 
+      orderId, paymentGateway, paymentMethod, shippingService, 
       useInsurance, items, promoCode, address, recipientName, 
       recipientPhone, district, city, totalWeight, dimensions, notes
     } = req.body;
 
     const userId = (session.user as any).id;
 
-    // --- 1. VALIDASI ONGKIR (DI LUAR TRANSAKSI DB AGAR TIDAK TIMEOUT) ---
+    // --- 1. VALIDASI ONGKIR (OUTSIDE TRANSACTION) ---
     let shippingCost = 0;
     try {
       const destStr = `${district}, ${city}`.toUpperCase();
-      // Tips: Gunakan URL absolut untuk fetch internal
       const shipRes = await fetch(`${process.env.NEXTAUTH_URL}/api/shipping`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,34 +86,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
-      // C. Kalkulasi Final
+      // C. Kalkulasi Final (Insurance 0.27% setelah diskon)
       const finalSubtotal = serverSubtotal - serverDiscount;
+      const insuranceCost = useInsurance ?  Math.round(finalSubtotal * PLATFORM_INSURANCE) : 0;
+      const finalAmount = finalSubtotal + shippingCost + insuranceCost + PLATFORM_SERVICE_FEE;
 
-      const insuranceCost = useInsurance ? Math.round(finalSubtotal * NORVINE_CONFIG.INSURANCE_RATE) : 0;
-      const finalAmount = serverSubtotal - serverDiscount + shippingCost + insuranceCost + PLATFORM_SERVICE_FEE;
-
-      // D. Midtrans Charge
-      const midtransParam: any = {
-        payment_type: paymentMethod === "qris" ? "qris" : "bank_transfer",
-        transaction_details: { order_id: orderId, gross_amount: Math.round(finalAmount) },
-        item_details: [
-          ...validatedItems.map(i => ({ id: i.variantId, price: i.price, quantity: i.quantity, name: i.name })),
-          { id: 'SHIPPING', name: `Ongkir ${shippingService}`, price: shippingCost, quantity: 1 },
-          { id: 'FEE_SERVICE', name: 'Biaya Layanan', price: PLATFORM_SERVICE_FEE, quantity: 1 }
-        ],
-        customer_details: {
-          email: session.user?.email,
-          first_name: recipientName,
+      // D. PANGGIL SERVICE PAYMENT (Pemisahan Logic Gateway)
+      const paymentRes = await processPayment(paymentGateway, {
+        orderId,
+        finalAmount,
+        paymentMethod,
+        customerDetails: { 
+          email: session.user?.email, 
+          first_name: recipientName, 
           phone: recipientPhone,
           shipping_address: { address, phone: recipientPhone, first_name: recipientName }
-        }
-      };
-
-      if (insuranceCost > 0) midtransParam.item_details.push({ id: 'INSURANCE', name: 'Asuransi', price: insuranceCost, quantity: 1 });
-      if (serverDiscount > 0) midtransParam.item_details.push({ id: 'PROMO', name: 'Promo', price: -serverDiscount, quantity: 1 });
-      if (paymentMethod !== "qris") midtransParam.bank_transfer = { bank: paymentMethod.replace('_va', '') };
-
-      const chargeResponse = await coreApi.charge(midtransParam);
+        },
+        itemDetails: [
+          ...validatedItems.map(i => ({ id: i.variantId, price: i.price, quantity: i.quantity, name: i.name })),
+          { id: 'SHIPPING', name: `Ongkir ${shippingService}`, price: shippingCost, quantity: 1 },
+          { id: 'FEE_SERVICE', name: 'Biaya Layanan', price: PLATFORM_SERVICE_FEE, quantity: 1 },
+          ...(insuranceCost > 0 ? [{ id: 'INSURANCE', name: 'Asuransi', price: insuranceCost, quantity: 1 }] : []),
+          ...(serverDiscount > 0 ? [{ id: 'PROMO', name: 'Promo', price: -serverDiscount, quantity: 1 }] : [])
+        ]
+      });
 
       // E. Update Stok
       for (const item of validatedItems) {
@@ -122,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
-      // F. Simpan Transaksi (Tanpa nested history untuk hindari fkey error)
+      // F. Simpan Transaksi
       const transaction = await tx.transaction.create({
         data: {
           invoice: orderId,
@@ -136,15 +133,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           shippingAddress: address,
           recipientName,
           recipientPhone,
-          paymentMethod,
+          paymentMethod: `${paymentGateway}_${paymentMethod}`,
           userId,
           promoId,
-          midtransOrderId: chargeResponse.transaction_id,
-          vaNumber: chargeResponse.va_numbers?.[0]?.va_number || null,
-          bankName: chargeResponse.va_numbers?.[0]?.bank || (paymentMethod === 'qris' ? 'QRIS' : paymentMethod),
-          qrUrl: chargeResponse.actions?.find((a: any) => a.name === "generate-qr-code")?.url || null,
-          paymentExpiry: chargeResponse.expiry_time ? new Date(chargeResponse.expiry_time) : null,
-          rawPaymentRes: chargeResponse as any, 
+          notes: notes || null,
+          midtransOrderId: paymentRes.gatewayId,
+          vaNumber: paymentRes.vaNumber,
+          bankName: paymentRes.bankName,
+          qrUrl: paymentRes.qrUrl,
+          deepLink: paymentRes.deepLink,
+          paymentExpiry: paymentRes.expiry,
+          rawPaymentRes: paymentRes.raw as any, 
           items: {
             create: validatedItems.map(item => ({
               productId: item.productId,
@@ -165,9 +164,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      return { transaction };
+      return { transaction, paymentUrl: paymentRes.deepLink };
     }, {
-      timeout: 10000 // Beri waktu 10 detik karena proses Midtrans cukup lama
+      timeout: 20000 // Waktu lebih lama untuk proses payment gateway
     });
 
     return res.status(200).json(result);

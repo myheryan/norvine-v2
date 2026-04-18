@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { FiChevronDown, FiArrowLeft, FiLoader, FiCopy } from 'react-icons/fi'
 import { formatRp } from '@/lib/utils'
 import Image from 'next/image'
+import { QRCodeCanvas } from 'qrcode.react';
 
 interface PaymentViewProps {
   paymentData: any;
@@ -35,6 +36,17 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
   const invoiceId = transaction?.invoice;
   const createdAt = transaction?.createdAt;
   const totalAmount = transaction?.totalAmount || 0;
+
+
+
+const XENDIT_SECRET_KEY = process.env.XENDIT_SECRET_KEY;
+// Pastikan ada titik dua (:) sebelum di-base64
+const AUTH_HEADER = Buffer.from(`${XENDIT_SECRET_KEY}:`).toString('base64');
+
+console.log(`ini kodenya : ${AUTH_HEADER}` )
+
+
+
 
   // --- LOGIKA REAL-TIME POLLING ---
   useEffect(() => {
@@ -110,14 +122,19 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
             </div>
             
             <div className="p-4 border border-gray-100 bg-white shadow-sm inline-block">
-              <Image 
-                src={qrUrl} 
-                alt="QRIS" 
-                width={300} 
-                height={300} 
-                className="mx-auto object-contain"
-                priority
-              />
+                {transaction.qrUrl && !transaction.qrUrl.startsWith('http') ? (
+                  <div className="bg-white p-4 inline-block">
+                    <QRCodeCanvas 
+                      value={transaction.qrUrl} 
+                      size={256}
+                      level="H"
+                      includeMargin={true}
+                    />
+                  </div>
+                ) : (
+                  // Jika ternyata itu URL (seperti dari Midtrans), baru pakai <img>
+                  <img src={transaction.qrUrl} alt="QRIS" className="w-64 h-64" />
+                )}
             </div>
             <p className="text-xs text-gray-400 text-center uppercase tracking-widest">Scan kode di atas untuk membayar</p>
           </div>

@@ -157,7 +157,8 @@ model Transaction {
   id              String      @id @default(cuid())
   invoice         String      @unique
   status          OrderStatus @default(PENDING)
-  
+  notes           String?
+
   subtotal        Int         @default(0)
   discount        Int         @default(0)
   shippingCost    Int         @default(0)
@@ -170,8 +171,9 @@ model Transaction {
   recipientName   String?
   recipientPhone  String?
   waybill         String?
+  
 
-  paymentMethod   String    // bank_transfer, gopay, cstore, dll
+  paymentMethod   String    
   midtransOrderId String?   @unique
   
   bankName        String?   

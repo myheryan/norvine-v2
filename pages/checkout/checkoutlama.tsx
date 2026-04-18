@@ -174,8 +174,8 @@ const logistics = useMemo(() => {
 
   // 4. KALKULASI TOTAL AKHIR
   const subtotalAfterDiscount = orderData.subtotal - orderData.discount;
-  const shippingCost = selectedRate ? selectedRate.total_tariff : 0;
-  const insuranceCost = useInsurance ? Math.ceil(subtotalAfterDiscount * NORVINE_CONFIG.INSURANCE_RATE) : 0;
+  const shippingCost = selectedRate ? selectedRate.total_tariff : NORVINE_CONFIG;
+  const insuranceCost = useInsurance ? Math.round(subtotalAfterDiscount * NORVINE_CONFIG.INSURANCE_RATE) : 0;
   const serviceFee = NORVINE_CONFIG.SERVICE_FEE;
   const total = Math.round(subtotalAfterDiscount + shippingCost + insuranceCost + serviceFee);
 
@@ -203,13 +203,8 @@ const logistics = useMemo(() => {
 
     setIsSubmitting(true);
     try {
-      // PENENTUAN GATEWAY BERDASARKAN METODE PEMBAYARAN
-      //const paymentGateway = options.payment === 'xendit' ? 'XENDIT' : 'MIDTRANS';
-      const paymentGateway = 'XENDIT';
-
       const payload = {
         orderId: `NORV-${Date.now()}`,
-        paymentGateway, // Kirim gateway yang dipilih ke Backend
         notes,
         grossAmount: total,
         useInsurance,
@@ -221,9 +216,9 @@ const logistics = useMemo(() => {
         city: address.city.trim().toUpperCase(),
         totalWeight: logistics.totalWeight,
         dimensions: {
-          width: logistics.totalWidth,
-          length: logistics.maxLength,
-          height: logistics.maxHeight
+        width: logistics.totalWidth,
+        length: logistics.maxLength,
+        height: logistics.maxHeight
         },
         address: `${address.fullAddress}, ${address.district}, ${address.city}, ${address.province} ${address.postalCode}`,
         items: orderData.items.map((i: any) => ({
@@ -231,12 +226,12 @@ const logistics = useMemo(() => {
           variantId: i.variantId || null,
           quantity: Number(i.quantity),
           price: Number(i.price),
-          weight: Number(i.weight) 
+          weight: Number(i.weight) // Snapshot berat per item
         })),
         promoCode: orderData.appliedPromo?.code || null
       };
 
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/charge", {
         method: "POST", 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -250,12 +245,7 @@ const logistics = useMemo(() => {
         localStorage.removeItem('pending_checkout');
         clearPurchasedItems(variantIdsPembelian);
 
-        // Jika Xendit mengirimkan paymentUrl (deepLink), buka di tab baru atau redirect
-        if (resData.paymentUrl) {
-           window.location.href = resData.paymentUrl;
-        } else {
-           router.push(`/payment/${resData.transaction.invoice}`);
-        }
+        router.push(`/payment/${resData.transaction.invoice}`);
       } else {
         toast.error(resData.error || "Gagal memproses pembayaran");
       }

@@ -13,7 +13,8 @@ export interface CartItem {
   quantity: number;
   variantImageUrl?: string;
   thumbnailUrl?: string; 
-  weight: number; 
+  weight: number;
+  stock: number;            // TAMBAHKAN INI
   dimensions?: {
     length: number;
     width: number;
