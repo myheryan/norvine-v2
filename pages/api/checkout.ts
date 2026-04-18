@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (promo && promo.status === 'ACTIVE' && serverSubtotal >= (promo.minOrder || 0)) {
           promoId = promo.id;
 
-          if (promo.type === 'PERCENTAGE') {
+          if (promo.type === 'PERCENT') {
             let calculatedDiscount = (serverSubtotal * promo.value) / 100;
             if (promo.maxDiscount && calculatedDiscount > promo.maxDiscount) {
               calculatedDiscount = promo.maxDiscount;

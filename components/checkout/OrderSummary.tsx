@@ -165,7 +165,7 @@ export default function OrderSummary({
               <button 
                 type="button"
                 onClick={() => setShowDetails(!showDetails)}
-                className="flex items-center gap-1 text-zinc-600 hover:text-zinc-900 transition-colors text-[11px] uppercase font-bold tracking-tighter"
+                className="flex items-center gap-1 text-zinc-600 hover:text-zinc-900 transition-colors text-[12px] font-semibold tracking-tighter"
               >
                 <span>Rincian Biaya</span>
                 {showDetails ? <FiChevronUp /> : <FiChevronDown />}
@@ -175,7 +175,7 @@ export default function OrderSummary({
                 <div className="mt-3 space-y-3 border-l-2 border-zinc-900 pl-4 ml-1 animate-in slide-in-from-top-1 duration-300">
                   {insuranceCost > 0 && (
                     <div className="flex justify-between text-zinc-500">
-                      <span>Asuransi Kurir (0.27%)</span>
+                      <span>Asuransi</span>
                       <span>{formatRp(insuranceCost)}</span>
                     </div>
                   )}

@@ -236,7 +236,7 @@ const logistics = useMemo(() => {
         promoCode: orderData.appliedPromo?.code || null
       };
 
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/charge", {
         method: "POST", 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

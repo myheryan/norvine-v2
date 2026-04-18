@@ -34,6 +34,6 @@ export const NORVINE_CONFIG: ShippingConfig = {
     width: 6,
     height: 12,
   },
-  SERVICE_FEE: 1000,
+  SERVICE_FEE: 500,
   INSURANCE_RATE: 0.0027,
 };

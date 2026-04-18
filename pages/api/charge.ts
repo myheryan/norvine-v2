@@ -74,32 +74,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       // B. Validasi Promo
-      let serverDiscount = 0;
-      let promoId = null;
+let serverDiscount = 0;
+      let promoId: number | null = null;
 
       if (promoCode) {
+        const now = new Date();
         const promo = await tx.promo.findUnique({ 
           where: { code: String(promoCode).toUpperCase() } 
         });
 
-        // Validasi Status & Minimal Order
-        if (promo && promo.status === 'ACTIVE' && serverSubtotal >= (promo.minOrder || 0)) {
+        // 1. Validasi Dasar: Status, Tanggal, Limit, dan Minimal Order
+        const isActive = promo && promo.status === 'ACTIVE';
+        const isWithinDate = promo && (!promo.startDate || now >= promo.startDate) && (!promo.endDate || now <= promo.endDate);
+        const isUnderLimit = promo && (promo.limit === 0 || promo.used < promo.limit);
+        const isMinOrderMet = promo && serverSubtotal >= (promo.minOrder || 0);
+
+        if (promo && isActive && isWithinDate && isUnderLimit && isMinOrderMet) {
           promoId = promo.id;
 
-          if (promo.type === 'PERCENTAGE') {
-            let calculatedDiscount = (serverSubtotal * promo.value) / 100;
+          // 2. Logika Perhitungan Diskon
+          if (promo.type === 'PERCENT') {
+            // Rumus: (Subtotal * Persen) / 100
+            let calculatedDiscount = Math.floor((serverSubtotal * promo.value) / 100);
+
+            // Cek Max Discount (Plafon) jika ada
             if (promo.maxDiscount && calculatedDiscount > promo.maxDiscount) {
               calculatedDiscount = promo.maxDiscount;
             }
+            
             serverDiscount = calculatedDiscount;
           } else {
+            // Tipe FLAT: Potongan langsung sesuai value
             serverDiscount = promo.value;
           }
 
-          // Pastikan diskon tidak melebihi subtotal (keamanan tambahan)
-          if (serverDiscount > serverSubtotal) serverDiscount = serverSubtotal;
+          // 3. Safety Check: Diskon tidak boleh melebihi harga barang
+          if (serverDiscount > serverSubtotal) {
+            serverDiscount = serverSubtotal;
+          }
 
-          // Increment jumlah penggunaan promo
+          // 4. Update Jumlah Penggunaan
           await tx.promo.update({ 
             where: { id: promo.id }, 
             data: { used: { increment: 1 } } 
