@@ -162,9 +162,9 @@ export default function CartPage() {
                               <Image src={getCloudinaryImage(item.variantImageUrl || item.thumbnailUrl, 200, 200)} alt={item.name} fill className="object-contain" />
                             </div>
                             <div className="flex-1">
-                              <h3 className="text-sm font-bold mb-1 line-clamp-2 text-slate-800">{item.name}</h3>
-                              <p className="text-[10px] text-slate-400 mb-2 italic">Varian: {item.variant}</p>
-                              {isOutOfStock ? <p className="text-[10px] text-red-500 font-bold italic uppercase">Stok Habis</p> : <p className="font-bold text-base text-zinc-950">{formatRp(item.price)}</p>}
+                              <h3 className="text-base font-semibold mb-1 line-clamp-2 text-slate-800">{item.name}</h3>
+                              <p className="text-sm text-slate-400 mb-2 italic">Varian: {item.variant}</p>
+                              {isOutOfStock ? <p className="text-sm text-red-500 font-bold italic uppercase">Stok Habis</p> : <p className="font-bold text-base text-zinc-950">{formatRp(item.price)}</p>}
                             </div>
                             <div className="flex flex-col items-end justify-between py-1">
                               <button onClick={() => removeFromCart(item.variantId)} className="text-slate-300 hover:text-red-500 transition"><FiTrash2 size={18} /></button>
@@ -231,8 +231,8 @@ export default function CartPage() {
                       <div className="flex-1 text-sm flex flex-col justify-between">
                         <div>
                           <h3 className="line-clamp-2 leading-snug font-bold text-slate-800">{item.name}</h3>
-                          <p className="text-[10px] text-slate-400 mt-0.5 tracking-widest font-bold uppercase italic">Varian: {item.variant}</p>
-                          {isOutOfStock ? <p className="text-[10px] text-red-500 font-bold italic mt-1 uppercase">Stok Habis</p> : <p className="font-bold mt-1 text-zinc-950 tracking-tight">{formatRp(item.price)}</p>}
+                          <p className="text-xs text-slate-400 mt-0.5 tracking-widest  italic">Varian: {item.variant}</p>
+                          {isOutOfStock ? <p className="text-[10px] text-red-500 font-bold italic mt-1">Stok Habis</p> : <p className="font-bold mt-1 text-zinc-950 tracking-tight">{formatRp(item.price)}</p>}
                         </div>
                         <div className="flex justify-end items-center mt-2 gap-4">
                           <button onClick={() => removeFromCart(item.variantId)} className="text-slate-300"><FiTrash2 size={18} /></button>
