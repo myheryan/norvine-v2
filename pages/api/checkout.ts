@@ -74,15 +74,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
       });
 
-      // B. Validasi Promo
       let serverDiscount = 0;
-      let promoId: number | null = null;
+      let promoId = null;
+
       if (promoCode) {
-        const promo = await tx.promo.findUnique({ where: { code: String(promoCode).toUpperCase() } });
+        const promo = await tx.promo.findUnique({ 
+          where: { code: String(promoCode).toUpperCase() } 
+        });
+
+        // Validasi Status & Minimal Order
         if (promo && promo.status === 'ACTIVE' && serverSubtotal >= (promo.minOrder || 0)) {
           promoId = promo.id;
-          serverDiscount = promo.value;
-          await tx.promo.update({ where: { id: promo.id }, data: { used: { increment: 1 } } });
+
+          if (promo.type === 'PERCENTAGE') {
+            let calculatedDiscount = (serverSubtotal * promo.value) / 100;
+            if (promo.maxDiscount && calculatedDiscount > promo.maxDiscount) {
+              calculatedDiscount = promo.maxDiscount;
+            }
+            serverDiscount = calculatedDiscount;
+          } else {
+            serverDiscount = promo.value;
+          }
+
+          // Pastikan diskon tidak melebihi subtotal (keamanan tambahan)
+          if (serverDiscount > serverSubtotal) serverDiscount = serverSubtotal;
+
+          // Increment jumlah penggunaan promo
+          await tx.promo.update({ 
+            where: { id: promo.id }, 
+            data: { used: { increment: 1 } } 
+          });
         }
       }
 
