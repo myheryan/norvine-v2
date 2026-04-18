@@ -20,27 +20,46 @@ export default function CartPage() {
   const { status } = useSession();
   const { cartItems, removeFromCart, setCartItems, isInitialized } = useCart();
   const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [mounted, setMounted] = useState(false);
   
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 1. Handling Hydration & Initial Re-fetch Stok
   useEffect(() => {
-    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
-  }, []);
+    setMounted(true);
 
-  // Inisialisasi seleksi: Otomatis uncheck jika stok <= 0
+    const refreshCartStock = async () => {
+      if (status === 'authenticated') {
+        try {
+          const res = await fetch('/api/cart');
+          if (res.ok) {
+            const latestData = await res.json();
+            // Timpa data local dengan data fresh dari DB yang punya stok terbaru
+            setCartItems(latestData);
+          }
+        } catch (err) {
+          console.error("Gagal sinkronisasi stok terbaru");
+        }
+      }
+    };
+
+    refreshCartStock();
+
+    return () => { if (syncTimerRef.current) clearTimeout(syncTimerRef.current); };
+  }, [status, setCartItems]);
+
+  // 2. Inisialisasi seleksi: Otomatis uncheck jika stok <= 0
   useEffect(() => {
     if (isInitialized) {
       setSelected(prev => 
         cartItems.reduce((acc, item) => ({ 
           ...acc, 
-          // Safely check stock: default to false if stock property is missing or 0
           [getKey(item)]: (item.stock ?? 1) > 0 ? (prev[getKey(item)] ?? true) : false 
         }), {})
       );
     }
   }, [cartItems, isInitialized]);
 
-  // Perhitungan Subtotal & Count
   const selectedItems = useMemo(() => cartItems.filter(i => selected[getKey(i)] && (i.stock ?? 1) > 0), [cartItems, selected]);
   const selectedCount = useMemo(() => selectedItems.reduce((sum, item) => sum + item.quantity, 0), [selectedItems]);
   const allSelected = cartItems.length > 0 && selectedItems.length === cartItems.filter(i => (i.stock ?? 1) > 0).length;
@@ -64,9 +83,10 @@ export default function CartPage() {
   };
 
   const updateQty = (item: CartItem, delta: number) => {
-    const maxStock = item.stock ?? 999;
-    const newQty = Math.max(1, Math.min(maxStock, item.quantity + delta));
+    const maxStock = item.stock ?? 0;
+    const newQty = Math.max(1, item.quantity + delta);
 
+    // Proteksi: Jika mencoba menambah padahal sudah mencapai stok maksimal
     if (delta > 0 && item.quantity >= maxStock) {
       toast.error(`Batas stok tercapai (${maxStock} item)`);
       return;
@@ -74,26 +94,28 @@ export default function CartPage() {
 
     if (newQty === item.quantity) return;
 
-    // Update Local State (Optimistic Update)
+    // Optimistic Update: Update local dulu biar cepat
     setCartItems((prev) => prev.map(i => getKey(i) === getKey(item) ? { ...i, quantity: newQty } : i));
 
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
 
-    // Sync ke Database jika Login
     if (status === 'authenticated') {
       syncTimerRef.current = setTimeout(async () => {
         try {
-          await fetch('/api/cart', {
+          const res = await fetch('/api/cart', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              variantId: item.variantId, 
-              quantity: newQty, 
-              isAbsolute: true 
-            }),
+            body: JSON.stringify({ variantId: item.variantId, quantity: newQty, isAbsolute: true }),
           });
+
+          if (!res.ok) {
+            const errData = await res.json();
+            toast.error(errData.message);
+            // Rollback jika server menolak (stok tidak sinkron)
+            setCartItems((prev) => prev.map(i => getKey(i) === getKey(item) ? { ...i, quantity: item.quantity } : i));
+          }
         } catch (err) { console.error("Sync Error:", err); }
-      }, 1000);
+      }, 800);
     }
   };
 
@@ -110,7 +132,7 @@ export default function CartPage() {
         price: i.price,
         quantity: i.quantity,
         thumbnailUrl: i.thumbnailUrl,
-        weight: i.weight ?? 0.1, // Penting untuk logistik
+        weight: i.weight ?? 0.1,
       })),
       subtotal: subtotal
     };
@@ -121,7 +143,8 @@ export default function CartPage() {
     } catch (error) { toast.error("Gagal memproses keranjang"); }
   };
 
-  if (!isInitialized) return <LoadingScreen />
+  // Pastikan render hanya terjadi setelah Mounted untuk menghindari Hydration Error
+  if (!mounted || !isInitialized) return <LoadingScreen />
 
   const EmptyCart = () => (
     <div className="bg-white p-10 md:p-20 flex flex-col items-center justify-center text-center rounded-lg border border-slate-100">
@@ -129,7 +152,7 @@ export default function CartPage() {
         <Image src="/empty-cart.png" alt="Empty" fill className="object-contain opacity-80" />
       </div>
       <h2 className="text-xl font-semibold text-slate-800 mb-2">Keranjang belanjamu kosong</h2>
-      <Link href="/our-products" className="bg-zinc-950 text-white px-10 py-3 rounded-lg font-semibold hover:bg-zinc-800 transition">Mulai Belanja</Link>
+      <Link href="/our-products" className="bg-zinc-950 text-white px-10 py-3 rounded-lg font-semibold hover:bg-zinc-800 transition text-sm tracking-widest">Mulai Belanja</Link>
     </div>
   );
 
@@ -143,17 +166,18 @@ export default function CartPage() {
             {cartItems.length === 0 ? <EmptyCart /> : (
               <div className="flex gap-8 items-start">
                 <div className="flex-1">
-                  <div className="flex items-center justify-between pb-4 border-b-2 border-slate-200 mb-4 uppercase text-xs font-bold tracking-widest">
+                  <div className="flex items-center justify-between pb-4 border-b-2 border-slate-200 mb-4 text-xs font-bold tracking-widest text-slate-400">
                     <div className="flex items-center gap-3">
                       <input type="checkbox" className="tkp-checkbox" checked={allSelected} onChange={toggleAll} />
                       <span>Pilih Semua ({cartItems.length})</span>
                     </div>
-                    {selectedItems.length > 0 && <button onClick={removeSelected} className="text-red-500 hover:underline">Hapus</button>}
+                    {selectedItems.length > 0 && <button onClick={removeSelected} className="text-red-500 hover:underline font-bold">Hapus</button>}
                   </div>
 
                   <div className="space-y-6">
                     {cartItems.map((item) => {
-                      const isOutOfStock = (item.stock ?? 1) <= 0;
+                      const isOutOfStock = (item.stock ?? 0) <= 0;
+                      const isMaxQty = item.quantity >= (item.stock ?? 0);
                       return (
                         <div key={getKey(item)} className={`border-b border-slate-100 pb-6 ${isOutOfStock ? 'opacity-40' : ''}`}>
                           <div className="flex gap-4">
@@ -162,9 +186,9 @@ export default function CartPage() {
                               <Image src={getCloudinaryImage(item.variantImageUrl || item.thumbnailUrl, 200, 200)} alt={item.name} fill className="object-contain" />
                             </div>
                             <div className="flex-1">
-                              <h3 className="text-base font-semibold mb-1 line-clamp-2 text-slate-800">{item.name}</h3>
-                              <p className="text-sm text-slate-400 mb-2 italic">Varian: {item.variant}</p>
-                              {isOutOfStock ? <p className="text-sm text-red-500 font-bold italic uppercase">Stok Habis</p> : <p className="font-bold text-base text-zinc-950">{formatRp(item.price)}</p>}
+                              <h3 className="text-base font-semibold mb-1 line-clamp-2 text-slate-800 leading-tight">{item.name}</h3>
+                              <p className="text-xs text-slate-400 mb-2 italic">Varian: {item.variant}</p>
+                              {isOutOfStock ? <p className="text-sm text-red-500 font-bold italic tracking-widest">Stok Habis</p> : <p className="font-bold text-base text-zinc-950 tracking-tight">{formatRp(item.price)}</p>}
                             </div>
                             <div className="flex flex-col items-end justify-between py-1">
                               <button onClick={() => removeFromCart(item.variantId)} className="text-slate-300 hover:text-red-500 transition"><FiTrash2 size={18} /></button>
@@ -172,7 +196,7 @@ export default function CartPage() {
                                 <div className="flex items-center border border-slate-300 rounded-full px-2 py-1 h-8 bg-white shadow-sm">
                                   <button onClick={() => updateQty(item, -1)} disabled={item.quantity <= 1} className="p-1 text-zinc-950 disabled:opacity-20"><FiMinus size={14}/></button>
                                   <span className="w-8 text-center text-sm font-black">{item.quantity}</span>
-                                  <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= (item.stock ?? 999)} className="p-1 text-zinc-950 disabled:opacity-20"><FiPlus size={14}/></button>
+                                  <button onClick={() => updateQty(item, 1)} disabled={isMaxQty} className="p-1 text-zinc-950 disabled:opacity-20 disabled:cursor-not-allowed"><FiPlus size={14}/></button>
                                 </div>
                               )}
                             </div>
@@ -185,7 +209,7 @@ export default function CartPage() {
 
                 <div className="w-[350px] sticky top-32">
                   <div className="border border-slate-200 rounded-xl p-6 shadow-sm bg-white">
-                    <h3 className="font-bold text-sm mb-6 uppercase tracking-widest">Ringkasan Belanja</h3>
+                    <h3 className="font-semibold text-base mb-6 text-zinc-900">Ringkasan Belanja</h3>
                     <div className="flex justify-between text-sm mb-4 text-slate-500 font-medium">
                       <span>Total Harga ({selectedCount} barang)</span>
                       <span>{formatRp(subtotal)}</span>
@@ -193,9 +217,9 @@ export default function CartPage() {
                     <hr className="my-4 border-slate-100" />
                     <div className="flex justify-between items-center mb-8">
                       <span className="font-medium text-slate-600">Total Tagihan</span>
-                      <span className="font-bold text-xl text-zinc-950 tracking-tighter">{formatRp(subtotal)}</span>
+                      <span className="font-bold text-xl text-zinc-950">{formatRp(subtotal)}</span>
                     </div>
-                    <button onClick={handleCheckout} disabled={selectedItems.length === 0} className="w-full bg-zinc-950 text-white py-4 rounded-xl font-bold hover:bg-zinc-800 disabled:bg-slate-100 disabled:text-slate-400 transition-all text-xs tracking-widest uppercase">Check out ({selectedCount})</button>
+                    <button onClick={handleCheckout} disabled={selectedItems.length === 0} className="w-full bg-zinc-950 text-white py-4 rounded-xl font-bold hover:bg-zinc-800 disabled:bg-slate-100 disabled:text-slate-400 transition-all text-xs tracking-widest">Check out ({selectedCount})</button>
                   </div>
                 </div>
               </div>
@@ -212,15 +236,13 @@ export default function CartPage() {
           </header>
           {cartItems.length === 0 ? <EmptyCart /> : (
             <div className="mt-1">
-              <div className="px-4 py-3 flex justify-between items-center border-b-8 border-slate-50">
-                  <div className="flex items-center gap-3">
-                    <input type="checkbox" className="tkp-checkbox" checked={allSelected} onChange={toggleAll} />
-                    <span className="font-bold text-sm uppercase">Pilih Semua ({selectedCount})</span>
-                  </div>
+              <div className="px-4 py-3 flex justify-between items-center border-b-8 border-slate-50 font-bold text-xs tracking-tight text-slate-400">
+                  <div className="flex items-center gap-3"><input type="checkbox" className="tkp-checkbox" checked={allSelected} onChange={toggleAll} /><span>Pilih Semua ({selectedCount})</span></div>
                   {selectedItems.length > 0 && <button onClick={removeSelected} className="text-sm font-bold text-red-500">Hapus</button>}
               </div>
               {cartItems.map((item) => {
-                const isOutOfStock = (item.stock ?? 1) <= 0;
+                const isOutOfStock = (item.stock ?? 0) <= 0;
+                const isMaxQty = item.quantity >= (item.stock ?? 0);
                 return (
                   <div key={getKey(item)} className={`p-4 border-b border-slate-50 ${isOutOfStock ? 'opacity-40 bg-slate-50' : ''}`}>
                     <div className="flex gap-3">
@@ -231,8 +253,8 @@ export default function CartPage() {
                       <div className="flex-1 text-sm flex flex-col justify-between">
                         <div>
                           <h3 className="line-clamp-2 leading-snug font-bold text-slate-800">{item.name}</h3>
-                          <p className="text-xs text-slate-400 mt-0.5 tracking-widest  italic">Varian: {item.variant}</p>
-                          {isOutOfStock ? <p className="text-[10px] text-red-500 font-bold italic mt-1">Stok Habis</p> : <p className="font-bold mt-1 text-zinc-950 tracking-tight">{formatRp(item.price)}</p>}
+                          <p className="text-xs text-slate-400 mt-0.5  italic">Varian: {item.variant}</p>
+                          {isOutOfStock ? <p className="text-[10px] text-red-500 font-bold italic mt-1 tracking-widest">Stok Habis</p> : <p className="font-bold mt-1 text-zinc-950 tracking-tight">{formatRp(item.price)}</p>}
                         </div>
                         <div className="flex justify-end items-center mt-2 gap-4">
                           <button onClick={() => removeFromCart(item.variantId)} className="text-slate-300"><FiTrash2 size={18} /></button>
@@ -240,7 +262,7 @@ export default function CartPage() {
                             <div className="flex items-center border border-slate-300 rounded-lg h-8 px-1 bg-white">
                               <button onClick={() => updateQty(item, -1)} disabled={item.quantity <= 1} className="p-1.5 text-zinc-950 disabled:opacity-20"><FiMinus size={14}/></button>
                               <span className="w-7 text-center text-xs font-black">{item.quantity}</span>
-                              <button onClick={() => updateQty(item, 1)} disabled={item.quantity >= (item.stock ?? 999)} className="p-1.5 text-zinc-950 disabled:opacity-20"><FiPlus size={14}/></button>
+                              <button onClick={() => updateQty(item, 1)} disabled={isMaxQty} className="p-1.5 text-zinc-950 disabled:opacity-20 disabled:cursor-not-allowed"><FiPlus size={14}/></button>
                             </div>
                           )}
                         </div>
@@ -253,10 +275,10 @@ export default function CartPage() {
           )}
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 p-4 flex items-center justify-between z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]">
             <div className="flex flex-col">
-              <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Total Harga</span>
+              <span className="text-[10px] font-bold text-slate-400 tracking-widest">Total Harga</span>
               <span className="font-bold text-lg text-zinc-950 tracking-tighter">{formatRp(subtotal)}</span>
             </div>
-            <button onClick={handleCheckout} disabled={selectedItems.length === 0} className="bg-zinc-950 text-white px-10 py-3 rounded-xl font-bold text-xs tracking-widest uppercase disabled:bg-slate-100 disabled:text-slate-300 shadow-xl shadow-zinc-100">Checkout ({selectedCount})</button>
+            <button onClick={handleCheckout} disabled={selectedItems.length === 0} className="bg-zinc-950 text-white px-10 py-3 rounded-xl font-bold text-xs tracking-widest disabled:bg-slate-100 disabled:text-slate-300 shadow-xl shadow-zinc-100">Checkout ({selectedCount})</button>
           </div>
         </div>
       </Mobile>

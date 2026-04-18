@@ -4,46 +4,49 @@ import { authOptions } from "../auth/[...nextauth]";
 import prisma from "@/lib/prisma"; 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getServerSession(req, res, authOptions);
+  try {
+    const session = await getServerSession(req, res, authOptions);
 
-  if (!session || !session.user?.email) {
-    return res.status(401).json({ message: "Not authenticated" });
-  }
+    if (!session || !session.user?.email) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    select: { id: true } // Cukup ambil ID saja lebih cepat
-  });
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: { id: true }
+    });
 
-  if (!user) return res.status(404).json({ message: "User not found" });
-  const userId = user.id;
+    if (!user) return res.status(404).json({ message: "User not found" });
+    const userId = user.id;
 
-  // --- GET: AMBIL ISI KERANJANG ---
-  if (req.method === 'GET') {
-    try {
+    if (req.method === 'GET') {
       const cartItems = await prisma.cartItem.findMany({
         where: { userId },
-        include: {
-          variant: {
-            include: { product: true },
-          },
-        },
+        include: { variant: { include: { product: true } } },
         orderBy: { createdAt: 'desc' },
       });
-      return res.status(200).json(cartItems);
-    } catch (error) {
-      return res.status(500).json({ message: "Error fetching cart" });
+
+      const formattedCart = cartItems.map(item => ({
+        id: item.variant.product.id,
+        variantId: item.variantId,
+        name: item.variant.product.name,
+        variant: item.variant.name,
+        price: item.variant.price,
+        quantity: item.quantity,
+        stock: item.variant.stock,
+        thumbnailUrl: item.variant.product.thumbnailUrl,
+        variantImageUrl: item.variant.imageUrl,
+        weight: item.variant.weight,
+      }));
+
+      return res.status(200).json(formattedCart);
     }
-  }
 
-  // --- POST: TAMBAH ATAU UPDATE QUANTITY ---
-  if (req.method === 'POST') {
-    const { variantId, quantity } = req.body; 
+    if (req.method === 'POST') {
+      const { variantId, quantity, isAbsolute } = req.body; 
 
-    if (!variantId) return res.status(400).json({ message: "Variant ID is required" });
+      if (!variantId) return res.status(400).json({ message: "Variant ID is required" });
 
-    try {
-      // 1. AMBIL DATA VARIAN UNTUK CEK STOK
       const variant = await prisma.productVariant.findUnique({
         where: { id: variantId },
         select: { stock: true }
@@ -55,58 +58,51 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: { userId_variantId: { userId, variantId } },
       });
 
-      // 2. HITUNG TOTAL QUANTITY YANG DIINGINKAN
-      const currentQty = existingItem ? existingItem.quantity : 0;
-      const targetQty = currentQty + quantity;
+      const targetQty = isAbsolute ? quantity : (existingItem ? existingItem.quantity + quantity : quantity);
 
-      // 3. VALIDASI STOK
-      if (targetQty > variant.stock && quantity > 0) {
+      // VALIDASI STOK: Kirim respon 400, JANGAN biarkan throw error
+      if (targetQty > variant.stock) {
         return res.status(400).json({ 
-          message: `Maaf, stok tidak mencukupi. Sisa stok: ${variant.stock}` 
+          message: `Maaf, stok tidak mencukupi. Sisa stok: ${variant.stock}`,
+          availableStock: variant.stock 
         });
       }
 
       if (existingItem) {
-        // Update (Increment/Decrement)
         const updatedItem = await prisma.cartItem.update({
           where: { id: existingItem.id },
-          data: { quantity: { increment: quantity } },
+          data: { quantity: isAbsolute ? quantity : { increment: quantity } },
         });
         
         if (updatedItem.quantity <= 0) {
           await prisma.cartItem.delete({ where: { id: updatedItem.id } });
           return res.status(200).json({ message: "Item removed" });
         }
-
         return res.status(200).json(updatedItem);
       } else {
-        // Create Baru
         const newItem = await prisma.cartItem.create({
-          data: {
-            userId,
-            variantId,
-            quantity: Math.min(Math.max(1, quantity), variant.stock), // Jangan lewatkan stok
-          },
+          data: { userId, variantId, quantity: Math.max(1, targetQty) },
         });
         return res.status(201).json(newItem);
       }
-    } catch (error) {
-      return res.status(500).json({ message: "Error updating cart" });
     }
-  }
 
-  // --- DELETE: HAPUS ITEM ---
-  if (req.method === 'DELETE') {
-    const { variantId } = req.body;
-    try {
+    if (req.method === 'DELETE') {
+      const { variantId } = req.body;
       await prisma.cartItem.delete({
         where: { userId_variantId: { userId, variantId } },
       });
       return res.status(200).json({ message: "Item deleted" });
-    } catch (error) {
-      return res.status(500).json({ message: "Error deleting item" });
     }
-  }
 
-  return res.status(405).json({ message: "Method not allowed" });
+    return res.status(405).json({ message: "Method not allowed" });
+
+  } catch (error) {
+    // Menangkap semua error agar tidak terjadi NetworkError (Crash)
+    console.error("Cart API Error:", error);
+    return res.status(500).json({ 
+      message: "Internal Server Error", 
+      error: process.env.NODE_ENV === 'development' ? error : undefined 
+    });
+  }
 }

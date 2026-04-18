@@ -215,7 +215,15 @@ export default function OrderDetailPage() {
                     </td>
                   </tr>
                 )}
-
+               {/* Kondisional: Diskon */}
+                {order.insuranceCost > 0 && (
+                  <tr>
+                    <td className="text-right">Asuransi</td>
+                    <td className="text-right text-red-500">
+                      -{formatRp(order.insuranceCost)}
+                    </td>
+                  </tr>
+                )}
                 {/* Kondisional: Service Fee */}
                 {order.serviceFee > 0 && (
                   <tr>
