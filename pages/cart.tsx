@@ -139,7 +139,7 @@ export default function CartPage() {
       <Desktop>
         <div className="min-h-screen bg-white pb-32 pt-8 text-[#31353B]">
           <div className="max-w-[1100px] mx-auto px-4">
-            <h1 className="text-2xl font-bold mb-6 text-zinc-950 tracking-tight font-sans">Keranjang</h1>
+            <h1 className="text-2xl font-bold mb-6 text-zinc-950 tracking-tight">Keranjang</h1>
             {cartItems.length === 0 ? <EmptyCart /> : (
               <div className="flex gap-8 items-start">
                 <div className="flex-1">
@@ -183,7 +183,7 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <div className="w-[350px] sticky top-32 font-sans">
+                <div className="w-[350px] sticky top-32">
                   <div className="border border-slate-200 rounded-xl p-6 shadow-sm bg-white">
                     <h3 className="font-bold text-sm mb-6 uppercase tracking-widest">Ringkasan Belanja</h3>
                     <div className="flex justify-between text-sm mb-4 text-slate-500 font-medium">
@@ -205,7 +205,7 @@ export default function CartPage() {
       </Desktop>
 
       <Mobile>
-        <div className="min-h-screen bg-white pb-32 font-sans text-[#31353B]">
+        <div className="min-h-screen bg-white pb-32 text-[#31353B]">
           <header className="bg-white px-4 py-4 flex items-center gap-4 border-b border-slate-100 sticky top-0 z-30">
             <Link href="/our-products"><FiChevronLeft size={26} /></Link>
             <h1 className="text-lg font-bold text-zinc-950 tracking-tight">Keranjang</h1>
