@@ -45,8 +45,8 @@ export default function OrderSummary({
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
           </div>
-          <h3 className="text-xs font-black uppercase tracking-[0.3em] text-zinc-900 mb-2">
-            Ekspedisi tidak tersedia
+          <h3 className="text-sm  text-zinc-900 mb-2">
+            Rincian Pembayaran akan muncul setelah layanan ekspedisi tersedia
           </h3>
         </div>
         <p className="mt-4 text-[9px] text-zinc-400 text-center uppercase tracking-widest leading-loose">

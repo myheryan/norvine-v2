@@ -91,12 +91,13 @@ export default function OrderItems({
               <FiEdit3 size={18} />
             </div>
             <div className="flex-1">
-              <label className="text-sm text-zinc-600 block mb-1">Catatan Pesanan</label>
+              <label className="text-sm text-zinc-600 block font-semibold mb-1">Catatan Pesanan</label>
               <textarea 
                 rows={1}
                 value={notes} 
                 onChange={(e) => setNotes(e.target.value)} 
                 placeholder="Tulis pesan..." 
+                maxLength={100}
                 className="w-full text-sm bg-transparent border-none outline-none placeholder-zinc-300 text-zinc-700 resize-none p-0 focus:ring-0" 
               />
             </div>
@@ -140,14 +141,14 @@ export default function OrderItems({
                 <FiChevronDown className={`text-zinc-600 transition-transform ${isShippingOpen ? 'rotate-180' : ''}`} size={16} />
               </button>
                               {/* PESAN ERROR JIKA LAYANAN 0 */}
-                {shippingData.services.length === 0 && !isCheckingShipping && (
+                {/* {shippingData.services.length === 0 && !isCheckingShipping && (
                   <div className="mb-2 p-3 flex gap-2 text-red-500">
                     <FiAlertCircle size={14} />
                     <span className="text-[12px]  tracking-tight">
-                      * {shippingErrorMessage || "Layanan ekspedisi tidak tersedia"}
+                      * {shippingErrorMessage}
                     </span>
                   </div>
-                )}
+                )} */}
 
               {isShippingOpen && isShippingAvailable && (
                 <>
