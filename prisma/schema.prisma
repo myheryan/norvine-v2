@@ -133,6 +133,8 @@ model ProductVariant {
   barcode Json?
   sku     String? @unique
   imageUrl  String?
+  isPreOrder   Boolean   @default(false)
+  releaseDate  DateTime? 
 
   cartItems  CartItem[]
   orderItems OrderItem[]

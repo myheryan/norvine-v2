@@ -59,12 +59,12 @@ export default function OrderSummary({
   // Grup Metode Pembayaran
   // Value ID disesuaikan agar dibaca backend: xendit atau bca_va dll.
   const gateways = [
-    {
-      title: 'Pembayaran Instan (Terverifikasi Otomatis)',
-      methods: [
-        { id: 'xendit', label: 'Xendit (QRIS, VA, E-Wallet)', icon: 'XND' },
-      ]
-    },
+    // {
+    //   title: 'Pembayaran Instan (Terverifikasi Otomatis)',
+    //   methods: [
+    //     { id: 'xendit', label: 'Xendit (QRIS, VA, E-Wallet)', icon: 'XND' },
+    //   ]
+    // },
     {
       title: 'Transfer Bank (Layanan Midtrans)',
       methods: [
