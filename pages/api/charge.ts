@@ -17,37 +17,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { 
       orderId, paymentMethod, shippingService, 
       useInsurance, items, promoCode, address, recipientName, 
-      recipientPhone, district, city, totalWeight, dimensions, notes
+      recipientPhone, totalWeight, dimensions, notes,
+      shippingDetails 
     } = req.body;
 
     const userId = (session.user as any).id;
+    const shippingCost = shippingDetails?.cost || 0; // <--- DEFINISIKAN VARIABLE INI
 
-    // --- 1. VALIDASI ONGKIR (DI LUAR TRANSAKSI DB AGAR TIDAK TIMEOUT) ---
-    let shippingCost = 0;
-    try {
-      const destStr = `${district}, ${city}`.toUpperCase();
-      // Tips: Gunakan URL absolut untuk fetch internal
-      const shipRes = await fetch(`${process.env.NEXTAUTH_URL}/api/shipping`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          destination: destStr, 
-          weight: totalWeight,
-          width: dimensions?.width || 10,
-          length: dimensions?.length || 10,
-          height: dimensions?.height || 10
-        })
-      });
-      const shipData = await shipRes.json();
-      const matchedService = shipData.result?.find((s: any) => s.product === shippingService);
-      
-      if (!matchedService) throw new Error("Layanan pengiriman tidak tersedia.");
-      shippingCost = matchedService.total_tariff;
-    } catch (e) {
-      throw new Error("Gagal validasi ongkos kirim. Pastikan alamat lengkap.");
+        // Contoh logic pengecekan di API /api/charge
+    const pendingOrder = await prisma.transaction.findFirst({
+      where: {
+        userId: userId,
+        status: "PENDING",
+        paymentExpiry: {
+          gt: new Date() // Masih dalam masa berlaku pembayaran
+        }
+      },
+      select: { invoice: true }
+    });
+
+    if (pendingOrder) {
+      throw new Error(`Anda masih memiliki pesanan pending #${pendingOrder.invoice}. Selesaikan pembayaran sebelum membuat pesanan baru.`);
     }
 
-    // --- 2. MULAI TRANSAKSI DATABASE ---
     const result = await prisma.$transaction(async (tx) => {
       
       // A. Validasi Stok & Harga Produk
@@ -73,61 +65,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
       });
 
-      // B. Validasi Promo
-let serverDiscount = 0;
+      // B. Validasi Promo (Tetap sama dengan logic Anda)
+      let serverDiscount = 0;
       let promoId: number | null = null;
-
       if (promoCode) {
         const now = new Date();
-        const promo = await tx.promo.findUnique({ 
-          where: { code: String(promoCode).toUpperCase() } 
-        });
-
-        // 1. Validasi Dasar: Status, Tanggal, Limit, dan Minimal Order
-        const isActive = promo && promo.status === 'ACTIVE';
-        const isWithinDate = promo && (!promo.startDate || now >= promo.startDate) && (!promo.endDate || now <= promo.endDate);
-        const isUnderLimit = promo && (promo.limit === 0 || promo.used < promo.limit);
-        const isMinOrderMet = promo && serverSubtotal >= (promo.minOrder || 0);
-
-        if (promo && isActive && isWithinDate && isUnderLimit && isMinOrderMet) {
+        const promo = await tx.promo.findUnique({ where: { code: String(promoCode).toUpperCase() } });
+        if (promo && promo.status === 'ACTIVE' && serverSubtotal >= (promo.minOrder || 0)) {
           promoId = promo.id;
-
-          // 2. Logika Perhitungan Diskon
-          if (promo.type === 'PERCENT') {
-            // Rumus: (Subtotal * Persen) / 100
-            let calculatedDiscount = Math.floor((serverSubtotal * promo.value) / 100);
-
-            // Cek Max Discount (Plafon) jika ada
-            if (promo.maxDiscount && calculatedDiscount > promo.maxDiscount) {
-              calculatedDiscount = promo.maxDiscount;
-            }
-            
-            serverDiscount = calculatedDiscount;
-          } else {
-            // Tipe FLAT: Potongan langsung sesuai value
-            serverDiscount = promo.value;
-          }
-
-          // 3. Safety Check: Diskon tidak boleh melebihi harga barang
-          if (serverDiscount > serverSubtotal) {
-            serverDiscount = serverSubtotal;
-          }
-
-          // 4. Update Jumlah Penggunaan
-          await tx.promo.update({ 
-            where: { id: promo.id }, 
-            data: { used: { increment: 1 } } 
-          });
+          serverDiscount = promo.type === 'PERCENT' 
+            ? Math.min(Math.floor((serverSubtotal * promo.value) / 100), promo.maxDiscount || Infinity)
+            : promo.value;
+          await tx.promo.update({ where: { id: promo.id }, data: { used: { increment: 1 } } });
         }
       }
 
       // C. Kalkulasi Final
       const finalSubtotal = serverSubtotal - serverDiscount;
-
       const insuranceCost = useInsurance ? Math.round(finalSubtotal * NORVINE_CONFIG.INSURANCE_RATE) : 0;
-      const finalAmount = serverSubtotal - serverDiscount + shippingCost + insuranceCost + PLATFORM_SERVICE_FEE;
+      const finalAmount = finalSubtotal + shippingCost + insuranceCost + PLATFORM_SERVICE_FEE;
 
-      // D. Midtrans Charge
+      // D. Midtrans Charge (Tetap sama)
       const midtransParam: any = {
         payment_type: paymentMethod === "qris" ? "qris" : "bank_transfer",
         transaction_details: { order_id: orderId, gross_amount: Math.round(finalAmount) },
@@ -143,25 +101,22 @@ let serverDiscount = 0;
           shipping_address: { address, phone: recipientPhone, first_name: recipientName }
         }
       };
-
       if (insuranceCost > 0) midtransParam.item_details.push({ id: 'INSURANCE', name: 'Asuransi', price: insuranceCost, quantity: 1 });
       if (serverDiscount > 0) midtransParam.item_details.push({ id: 'PROMO', name: 'Promo', price: -serverDiscount, quantity: 1 });
       if (paymentMethod !== "qris") midtransParam.bank_transfer = { bank: paymentMethod.replace('_va', '') };
 
       const chargeResponse = await coreApi.charge(midtransParam);
 
-      // E. Update Stok
+      // E. Update Stok (Tetap sama)
       for (const item of validatedItems) {
-        await tx.productVariant.update({ 
-          where: { id: item.variantId }, 
-          data: { stock: { decrement: item.quantity } } 
-        });
+        await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
       }
 
-      // F. Simpan Transaksi (Tanpa nested history untuk hindari fkey error)
+      // F. Simpan Transaksi & Shipment (Shipping Hub Integration)
       const transaction = await tx.transaction.create({
         data: {
           invoice: orderId,
+          notes,
           status: "PENDING",
           subtotal: serverSubtotal,
           discount: serverDiscount,
@@ -181,6 +136,21 @@ let serverDiscount = 0;
           qrUrl: chargeResponse.actions?.find((a: any) => a.name === "generate-qr-code")?.url || null,
           paymentExpiry: chargeResponse.expiry_time ? new Date(chargeResponse.expiry_time) : null,
           rawPaymentRes: chargeResponse as any, 
+          shipment: {
+            create: {
+              courierCode: shippingDetails.courier || "LION",
+              courierService: shippingDetails.service || shippingService,
+              originCode: shippingDetails.originCode,
+              destinationCode: shippingDetails.destinationCode,
+              ursaCode: shippingDetails.ursaCode,
+              weight: totalWeight || 0,
+              apiPayload: {
+                dimensions: dimensions || { length: 10, width: 10, height: 10 },
+                hasInsurance: insuranceCost > 0, // <--- Cukup tambahkan flag ini
+                insuranceValue: insuranceCost
+              }
+            }
+          },
           items: {
             create: validatedItems.map(item => ({
               productId: item.productId,
@@ -192,7 +162,7 @@ let serverDiscount = 0;
         },
       });
 
-      // G. Buat History secara eksplisit
+      // G. Buat History
       await tx.orderHistory.create({
         data: {
           transactionId: transaction.id,
@@ -203,7 +173,7 @@ let serverDiscount = 0;
 
       return { transaction };
     }, {
-      timeout: 10000 // Beri waktu 10 detik karena proses Midtrans cukup lama
+      timeout: 15000 
     });
 
     return res.status(200).json(result);

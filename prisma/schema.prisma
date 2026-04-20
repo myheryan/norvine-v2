@@ -7,35 +7,38 @@ datasource db {
   provider = "postgresql"
 }
 
-
 // --- USER & AUTH ---
 model User {
-  id            String    @id @default(cuid())
-  email         String?   @unique
-  birth         DateTime?
-  createdAt     DateTime  @default(now())
-  emailVerified DateTime?
-  image         String?
-  name          String?
-  phoneNumber   String?
-  role          String    @default("USER")
-  updatedAt     DateTime? @default(now()) @updatedAt
-  password      String?
-  lastLoginAt   DateTime? @default(now())
-  resetToken      String?   @unique
+  id               String    @id @default(cuid())
+  email            String?   @unique
+  name             String?
+  password         String?
+  role             String    @default("USER")
+  phoneNumber      String?
+  image            String?
+  birth            DateTime?
+  emailVerified    DateTime?
+  
+  // Auth & Session
+  lastLoginAt      DateTime? @default(now())
+  resetToken       String?   @unique
   resetTokenExpiry DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime? @default(now()) @updatedAt
 
+  // Relations
   accounts         Account[]
+  sessions         Session[]
   addresses        Address[]
   cartItems        CartItem[]
-  requestGenerates RequestGenerate[]
-  sessions         Session[]
   transactions     Transaction[]
   orderHistories   OrderHistory[]
+  requestGenerates RequestGenerate[]
 }
 
 model Address {
   id          String   @id @default(cuid())
+  userId      String
   label       String
   recipient   String
   phone       String
@@ -45,30 +48,10 @@ model Address {
   district    String
   postalCode  String
   isMain      Boolean  @default(false)
-  userId      String
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-}
 
-
-model VerificationToken {
-  id         String   @id @default(cuid())
-  identifier String   @unique
-  token      String   
-  expires    DateTime
-  attempts   Int      @default(0)     
-  lastSent   DateTime @default(now()) 
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Account {
@@ -84,14 +67,31 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
 
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String   @unique
+  token      String
+  expires    DateTime
+  attempts   Int      @default(0)
+  lastSent   DateTime @default(now())
+}
+
+// --- PRODUCT & INVENTORY ---
 model Product {
   id                   String   @id @map("key")
   regNumber            String?
@@ -108,59 +108,59 @@ model Product {
   warning              String?
   tag                  String[]
   attributes           Json?
+  isAvailable          Boolean  @default(true)
+  isDisplayOnly        Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
-  isAvailable          Boolean  @default(true)
-  isDisplayOnly        Boolean          @default(false)
-  
+
   variants   ProductVariant[]
   orderItems OrderItem[]
+  promos     Promo[]
   categories Category[]       @relation("ProductCategories")
   types      Type[]           @relation("ProductTypes")
-  promos     Promo[]
 }
 
 model ProductVariant {
-  id        String @id @default(cuid())
-  productId String
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  productId   String
+  sku         String?   @unique
+  name        String
+  price       Int
+  weight      Float?    @default(0)
+  dimensions  Json?
+  stock       Int       @default(0)
+  barcode     Json?
+  imageUrl    String?
+  isPreOrder  Boolean   @default(false)
+  releaseDate DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  name    String
-  price   Int
-  weight    Float?   @default(0)
-  dimensions Json? 
-  stock   Int    @default(0)
-  barcode Json?
-  sku     String? @unique
-  imageUrl  String?
-  isPreOrder   Boolean   @default(false)
-  releaseDate  DateTime? 
-
+  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems  CartItem[]
   orderItems OrderItem[]
   stockLogs  StockLog[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model StockLog {
-  id        String         @id @default(cuid())
+  id        String   @id @default(cuid())
   variantId String
-  variant   ProductVariant @relation(fields: [variantId], references: [id])
-  change    Int 
+  change    Int
   reason    String // "SALE", "RESTOCK", "RETURN"
-  createdAt DateTime       @default(now())
+  createdAt DateTime @default(now())
+
+  variant ProductVariant @relation(fields: [variantId], references: [id])
 }
 
-
-// --- TRANSACTION & ORDER (CORE API OPTIMIZED) ---
+// --- TRANSACTION & LOGISTICS ---
 model Transaction {
   id              String      @id @default(cuid())
   invoice         String      @unique
+  userId          String
   status          OrderStatus @default(PENDING)
   notes           String?
-
+  
+  // Amounts
   subtotal        Int         @default(0)
   discount        Int         @default(0)
   shippingCost    Int         @default(0)
@@ -169,56 +169,79 @@ model Transaction {
   serviceFee      Int         @default(0)
   totalAmount     Int         @default(0)
 
+  // Shipping Info (Snapshot)
   shippingAddress String
   recipientName   String?
   recipientPhone  String?
-  waybill         String?
-  
+  waybill         String? // Tetap simpan di sini untuk akses cepat
 
-  paymentMethod   String    
-  midtransOrderId String?   @unique
-  
-  bankName        String?   
-  vaNumber        String?   
-  paymentCode     String?   
-  
-  // Data E-Wallet / QRIS
-  qrUrl           String?   
-  deepLink        String?   
-  
+
+  // Payment Info
+  paymentMethod   String
+  midtransOrderId String?     @unique
+  bankName        String?
+  vaNumber        String?
+  paymentCode     String?
+  qrUrl           String?
+  deepLink        String?
   paymentExpiry   DateTime?
   rawPaymentRes   Json?
 
-  userId          String
-  promoId         Int?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  promoId   Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  user     User           @relation(fields: [userId], references: [id])
+  promo    Promo?         @relation(fields: [promoId], references: [id])
   items    OrderItem[]
   history  OrderHistory[]
-  promo    Promo?         @relation(fields: [promoId], references: [id])
-  user     User           @relation(fields: [userId], references: [id])
+  shipment Shipment?      // Relasi ke Shipping Hub
 
   @@index([userId])
   @@index([status])
 }
 
+// MODEL BARU UNTUK SHIPPING HUB
+model Shipment {
+  id             String      @id @default(cuid())
+  transactionId  String      @unique
+  transaction    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  // Data Identitas Pengiriman
+  isInsurance    Boolean  @default(false)
+  insuranceAmount Int      @default(0)
+  awbNumber      String?     @unique // No Resi / STT
+  courierCode    String      // e.g., "LION"
+  courierService String      // e.g., "REGPACK"
+  
+  // Data Teknis Rute (Dipindahkan dari Transaction)
+  originCode      String?    // e.g., "CGK"
+  destinationCode String?    // e.g., "BDO"
+  ursaCode        String?    // e.g., "1KDY" (Khusus Lion Parcel)
+
+  // Operasional
+  status         String      @default("PENDING")
+  weight         Float       @default(0)
+  apiPayload     Json?       // Untuk menyimpan history response dari API
+  
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
 model OrderItem {
-  id            String         @id @default(cuid())
-  productId     String
-  variantId     String?
-  quantity      Int            @default(1)
-  priceAtBuy    Int 
-  weightAtBuy   Float?
+  id              String  @id @default(cuid())
+  transactionId   String
+  productId       String
+  variantId       String?
+  quantity        Int     @default(1)
+  priceAtBuy      Int
+  weightAtBuy     Float?
   dimensionsAtBuy Json?
-  transactionId String
+  createdAt       DateTime @default(now())
 
-
+  transaction Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   product     Product         @relation(fields: [productId], references: [id])
   variant     ProductVariant? @relation(fields: [variantId], references: [id])
-  transaction Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
 }
 
 model OrderHistory {
@@ -226,33 +249,32 @@ model OrderHistory {
   transactionId String
   status        OrderStatus
   notes         String?
-  
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  updatedBy     User?       @relation(fields: [updatedById], references: [id])
   updatedById   String?
   createdAt     DateTime    @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  updatedBy   User?       @relation(fields: [updatedById], references: [id])
 }
 
-
 model Promo {
-  id                 Int           @id @default(autoincrement())
-  name               String
-  code               String        @unique
-  minOrder           Int           @default(0)
-  maxDiscount        Int?
-  startDate          DateTime? 
-  endDate            DateTime?
-  createdAt          DateTime      @default(now())
-  limit              Int           @default(0)
-  status             String        @default("ACTIVE")
-  type               String
-  used               Int           @default(0)
-  value              Int
-  
+  id          Int       @id @default(autoincrement())
+  name        String
+  code        String    @unique
+  type        String
+  value       Int
+  minOrder    Int       @default(0)
+  maxDiscount Int?
+  limit       Int       @default(0)
+  used        Int       @default(0)
+  status      String    @default("ACTIVE")
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+
   applicableProducts Product[]
   transactions       Transaction[]
 
-  @@index([status, startDate, endDate])  
+  @@index([status, startDate, endDate])
   @@index([code])
 }
 
@@ -268,30 +290,49 @@ model Type {
   products Product[] @relation("ProductTypes")
 }
 
-
 model CartItem {
-  id        String          @id @default(cuid())
-  quantity  Int             @default(1)
+  id        String   @id @default(cuid())
   userId    String
   variantId String?
-  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
 
   @@unique([userId, variantId])
 }
 
-
 model ShippingProvider {
   id        Int      @id @default(autoincrement())
   code      String   @unique // "LION_PARCEL"
-  name      String   // "Lion Parcel"
+  name      String
   isActive  Boolean  @default(true)
   apiKey    String?
-  config    Json?    // Simpan origin_postal_code di sini
+  config    Json?    // e.g., origin_postal_code
   updatedAt DateTime @updatedAt
 }
+
+model Warehouse {
+  id              String   @id @default(cuid())
+  name            String   
+  contactName     String   
+  phoneNumber     String   
+  address         String   
+  
+  province        String
+  city            String
+  district        String
+  postalCode      String
+  
+  lionOriginCode  String?
+  
+  isDefault       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 
 
 model Header {
@@ -312,29 +353,30 @@ model SerialNumber {
 
 model Check {
   id             Int          @id @default(autoincrement())
-  createdAt      DateTime     @default(now())
-  lat            Decimal
-  long           Decimal
   serialNumberId Int
   city           String
   county         String
   district       String
   subdistrict    String
-  serialNumber   SerialNumber @relation(fields: [serialNumberId], references: [id], onDelete: Cascade)
+  lat            Decimal
+  long           Decimal
+  createdAt      DateTime     @default(now())
+
+  serialNumber SerialNumber @relation(fields: [serialNumberId], references: [id], onDelete: Cascade)
 }
 
 model RequestGenerate {
-  id            Int            @id @default(autoincrement())
-  createdAt     DateTime       @default(now())
-  name          String
-  url           String
-  quantity      Int
-  userId        String
+  id        Int      @id @default(autoincrement())
+  userId    String
+  name      String
+  url       String
+  quantity  Int
+  createdAt DateTime @default(now())
+
   header        Header?
   serialNumbers SerialNumber[]
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
 
 enum OrderStatus {
   PENDING

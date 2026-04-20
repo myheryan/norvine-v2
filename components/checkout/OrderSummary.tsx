@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { FiChevronRight, FiChevronUp, FiChevronDown, FiInfo, FiCheckCircle } from 'react-icons/fi'
-import { formatRp, cn } from '@/lib/utils' // Pastikan cn tersedia atau gunakan string template
+"use client"
+
+import { useState, useEffect } from 'react'
+import { FiChevronRight, FiChevronUp, FiChevronDown, FiCheckCircle, FiAlertCircle } from 'react-icons/fi'
+import { formatRp, cn } from '@/lib/utils'
 import { FiTagIcon } from '../icons';
+import { useRouter } from 'next/router'
 
 interface SummaryProps {
   options: { shipping: string; payment: string };
@@ -33,7 +36,23 @@ export default function OrderSummary({
   setIsModalOpen,
   appliedPromo
 }: SummaryProps) {
+  const router = useRouter();
   const [showDetails, setShowDetails] = useState(true);  
+  const [hasPendingOrder, setHasPendingOrder] = useState<string | null>(null);
+
+  // Fungsi cek pesanan pending
+  useEffect(() => {
+    const checkPending = async () => {
+      try {
+        const res = await fetch('/api/user/check-pending');
+        const data = await res.json();
+        if (data.hasPending) {
+          setHasPendingOrder(data.invoice);
+        }
+      } catch (e) { console.error(e); }
+    };
+    checkPending();
+  }, []);
 
   if (!options.shipping || shippingCost === 0) {
     return (
@@ -45,7 +64,7 @@ export default function OrderSummary({
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
           </div>
-          <h3 className="text-sm  text-zinc-900 mb-2">
+          <h3 className="text-sm text-zinc-900 mb-2 font-normal">
             Rincian Pembayaran akan muncul setelah layanan ekspedisi tersedia
           </h3>
         </div>
@@ -56,15 +75,7 @@ export default function OrderSummary({
     )
   }
 
-  // Grup Metode Pembayaran
-  // Value ID disesuaikan agar dibaca backend: xendit atau bca_va dll.
   const gateways = [
-    // {
-    //   title: 'Pembayaran Instan (Terverifikasi Otomatis)',
-    //   methods: [
-    //     { id: 'xendit', label: 'Xendit (QRIS, VA, E-Wallet)', icon: 'XND' },
-    //   ]
-    // },
     {
       title: 'Transfer Bank (Layanan Midtrans)',
       methods: [
@@ -79,12 +90,11 @@ export default function OrderSummary({
       
       {/* SECTION 1: METODE PEMBAYARAN */}
       <div className="bg-white p-6 border border-zinc-100 shadow-sm rounded-none">
-        <h3 className="text-sm font-semibold text-zinc-900 mb-5">Metode Pembayaran</h3>
-        
+        <h3 className="text-sm font-normal text-zinc-900 mb-5 uppercase tracking-wider">Metode Pembayaran</h3>
         <div className="space-y-6">
           {gateways.map((group, idx) => (
             <div key={idx} className="space-y-3">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">{group.title}</p>
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-normal">{group.title}</p>
               <div className="space-y-4">
                 {group.methods.map((method) => (
                   <label key={method.id} className="flex items-center justify-between cursor-pointer group">
@@ -97,7 +107,7 @@ export default function OrderSummary({
                       </div>
                       <span className={cn(
                         "text-xs transition-colors",
-                        options.payment === method.id ? "text-black font-bold" : "text-zinc-600 group-hover:text-zinc-900"
+                        options.payment === method.id ? "text-black" : "text-zinc-600 group-hover:text-zinc-900"
                       )}>
                         {method.label}
                       </span>
@@ -120,7 +130,6 @@ export default function OrderSummary({
       </div>
 
       <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden rounded-none">
-        
         <div className="p-4 bg-zinc-50/50 border-b border-zinc-100">
           <button 
             type="button"
@@ -132,7 +141,7 @@ export default function OrderSummary({
                  <FiTagIcon size={20}/>
               </div>
               <div className="flex flex-col items-start text-left">
-                <span className="text-[11px] text-zinc-800 leading-none mb-1 font-bold">
+                <span className="text-[11px] text-zinc-800 leading-none mb-1 font-normal">
                   {discount > 0 ? 'PROMO TERPASANG' : 'GUNAKAN PROMO'}
                 </span>
                 <span className="text-[10px] text-zinc-500 tracking-tighter uppercase">
@@ -141,22 +150,21 @@ export default function OrderSummary({
               </div>
             </div>
             <div className="flex items-center gap-1">
-               {discount > 0 && <span className="text-xs font-bold text-black">-{formatRp(discount)}</span>}
+               {discount > 0 && <span className="text-xs font-semibold text-black">-{formatRp(discount)}</span>}
                <FiChevronRight className="text-zinc-300" size={18} />
             </div>
           </button>
         </div>
 
-        {/* RINGKASAN PEMBAYARAN */}
         <div className="p-6 space-y-4">
-          <h3 className="text-sm font-semibold text-zinc-900">Ringkasan Transaksi</h3>
+          <h3 className="text-sm font-normal text-zinc-900">Ringkasan Transaksi</h3>
           
           <div className="space-y-3 text-xs">
-            <div className="flex justify-between text-zinc-500 font-medium">
+            <div className="flex justify-between text-zinc-500">
               <span>Total Harga Produk</span>
               <span className="text-zinc-900">{formatRp(subtotal)}</span>
             </div>
-            <div className="flex justify-between text-zinc-500 font-medium">
+            <div className="flex justify-between text-zinc-500">
               <span>Ongkos Kirim</span>
               <span className="text-zinc-900">{formatRp(shippingCost)}</span>
             </div>
@@ -165,14 +173,14 @@ export default function OrderSummary({
               <button 
                 type="button"
                 onClick={() => setShowDetails(!showDetails)}
-                className="flex items-center gap-1 text-zinc-600 hover:text-zinc-900 transition-colors text-[12px] font-semibold tracking-tighter"
+                className="flex items-center gap-1 text-zinc-600 hover:text-zinc-900 transition-colors text-[12px] font-normal tracking-tighter"
               >
                 <span>Rincian Biaya</span>
                 {showDetails ? <FiChevronUp /> : <FiChevronDown />}
               </button>
               
               {showDetails && (
-                <div className="mt-3 space-y-3 border-l-2 border-zinc-900 pl-4 ml-1 animate-in slide-in-from-top-1 duration-300">
+                <div className="mt-3 space-y-3 border-l border-zinc-900 pl-4 ml-1 animate-in slide-in-from-top-1 duration-300 font-normal">
                   {insuranceCost > 0 && (
                     <div className="flex justify-between text-zinc-500">
                       <span>Asuransi</span>
@@ -184,7 +192,7 @@ export default function OrderSummary({
                     <span>{formatRp(serviceFee)}</span>
                   </div>
                   {discount > 0 && (
-                    <div className="flex justify-between text-black font-bold italic">
+                    <div className="flex justify-between text-black italic">
                       <span>Potongan Promo</span>
                       <span>-{formatRp(discount)}</span>
                     </div>
@@ -194,19 +202,26 @@ export default function OrderSummary({
             </div>
           </div>
 
-          {/* TOTAL FINAL */}
           <div className="mt-6 pt-5 border-t border-zinc-100">
+            {/* ALERT PESANAN PENDING */}
+            {hasPendingOrder && (
+              <div className="mb-4 p-3 bg-red-50 text-xs text-red-600 border border-red-100 flex items-center gap-2">
+                <FiAlertCircle size={14} className="shrink-0" />
+                <span className="flex-1">Selesaikan pembayaran #{hasPendingOrder} sebelum membuat pesanan baru.</span>
+              </div>
+            )}
+
             <div className="flex justify-between items-center mb-6">
-              <span className="text-[11px] uppercase tracking-widest text-zinc-400 font-bold">Total Tagihan</span>
-              <span className="text-xl font-black text-zinc-900 tracking-tighter">
+              <span className="text-sm uppercase text-zinc-900 font-semibold">Total Tagihan</span>
+              <span className="text-xl font-semibold text-zinc-900 tracking-tight">
                 {formatRp(total)}
               </span>
             </div>
             
             <button 
               type="submit"
-              disabled={isCheckoutDisabled || !options.payment}
-              className="w-full bg-zinc-900 rounded-none text-white py-4 font-bold text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-20 hover:bg-black"
+              disabled={isCheckoutDisabled || !options.payment || !!hasPendingOrder}
+              className="w-full bg-zinc-900 rounded-none text-white py-4 font-normal text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-20 hover:bg-black"
             >
               {isSubmitting ? (
                  <span className="flex items-center gap-2">
@@ -223,7 +238,6 @@ export default function OrderSummary({
           </div>
         </div>
       </div>
-
     </div>
   )
 }

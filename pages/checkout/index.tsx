@@ -14,6 +14,7 @@ import CheckoutAddressSection from '@/components/checkout/CheckoutAddressSection
 import PromoModal from '@/components/checkout/PromoModal'
 import { NORVINE_CONFIG } from '@/types/norvine-default'
 import { WeightToGram } from '@/lib/utils'
+import LoadingScreen from '@/components/ui/LoadingScreen'
 
 
 export default function CheckoutPage() {
@@ -44,6 +45,21 @@ const [orderData, setOrderData] = useState({
   const [selectedRate, setSelectedRate] = useState<any>(null)
   const [isCheckingShipping, setIsCheckingShipping] = useState(false)
   const [useInsurance, setUseInsurance] = useState(false)
+  const [hasPendingOrder, setHasPendingOrder] = useState<string | null>(null);
+
+useEffect(() => {
+  const checkPendingOrder = async () => {
+    try {
+      const res = await fetch('/api/user/check-pending');
+      const data = await res.json();
+      if (data.hasPending) {
+        setHasPendingOrder(data.invoice);
+      }
+    } catch (e) { console.error("Error checking pending order"); }
+  };
+
+  if (status === 'authenticated') checkPendingOrder();
+}, [status]);
 
   // 1. LOAD DATA DARI STORAGE
   useEffect(() => {
@@ -139,11 +155,13 @@ const logistics = useMemo(() => {
 
           if (rawResponse.result && rawResponse.result.length > 0) {
             const mappedRates = rawResponse.result.map((item: any) => ({
-              service_type: item.service_type,
-              product: item.product,
+              service_type: item.service_type, // "PACKAGE"
+              product: item.product,           // "REGPACK", "ONEPACK", dll
               total_tariff: item.total_tariff,
               estimasi_sla: item.estimasi_sla,
-              status: item.status
+              status: item.status,
+              origin_code: rawResponse.origin, 
+              destination_code: rawResponse.destination,
             }))
 
             setShippingRates(mappedRates)
@@ -214,17 +232,25 @@ const logistics = useMemo(() => {
         grossAmount: total,
         useInsurance,
         paymentMethod: options.payment, 
-        shippingService: options.shipping,
+        shippingService: selectedRate.product, 
+        shippingDetails: {
+            courier: 'LION',
+            service: selectedRate.product, 
+            serviceType: selectedRate.service_type,
+            originCode: selectedRate.origin_code,
+            destinationCode: selectedRate.destination_code, 
+            cost: selectedRate.total_tariff,
+            totalWeight: logistics.totalWeight,
+            dimensions: {
+              length: logistics.maxLength,
+              width: logistics.totalWidth,
+              height: logistics.maxHeight
+            }
+          },
         recipientName: address.recipientName,
         recipientPhone: address.recipientPhone,
         district: address.district.trim().toUpperCase(),
         city: address.city.trim().toUpperCase(),
-        totalWeight: logistics.totalWeight,
-        dimensions: {
-          width: logistics.totalWidth,
-          length: logistics.maxLength,
-          height: logistics.maxHeight
-        },
         address: `${address.fullAddress}, ${address.district}, ${address.city}, ${address.province} ${address.postalCode}`,
         items: orderData.items.map((i: any) => ({
           productId: i.productId,
@@ -270,9 +296,7 @@ const logistics = useMemo(() => {
 
   if (!isMounted || status === 'loading') {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center text-[10px] tracking-[0.3em] text-zinc-600 font-normal">
-        LOADING
-      </div>
+      <LoadingScreen />
     )
   }
 
@@ -325,7 +349,7 @@ const logistics = useMemo(() => {
               setOrderData={setOrderData}
               setIsModalOpen={setIsModalOpen}
               appliedPromo={orderData.appliedPromo}
-              isCheckoutDisabled={isCheckoutDisabled}
+              isCheckoutDisabled={isSubmitting || isCheckingShipping || !selectedRate || !!hasPendingOrder}
             />
           </form>
         </div>

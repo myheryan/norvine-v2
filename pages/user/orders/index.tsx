@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { FiCopy, FiInfo, FiShoppingBag, FiAlertCircle } from "react-icons/fi";
+import { FiCopy, FiInfo, FiShoppingBag, FiAlertCircle, FiX } from "react-icons/fi";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -20,55 +20,108 @@ const TABS = [
   { id: "COMPLETED", label: "Selesai" },
 ];
 
+// Opsi Alasan
+const CANCEL_REASONS = [
+  "Ingin mengubah alamat pengiriman",
+  "Ingin mengubah produk / variasi",
+  "Menemukan harga yang lebih murah",
+  "Metode pembayaran tidak sesuai",
+  "Berubah pikiran",
+];
+
+const COMPLAIN_REASONS = [
+  "Barang rusak / pecah",
+  "Produk tidak sesuai deskripsi",
+  "Jumlah produk kurang",
+  "Paket belum diterima (Status Selesai)",
+];
+
 export default function UserOrdersPage() {
   const { data: session } = useSession();
   const router = useRouter();
   
-  // State Utama
   const [activeTab, setActiveTab] = useState("ALL");
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // State Modal Lacak
   const [isTrackingOpen, setIsTrackingOpen] = useState(false);
   const [selectedTrx, setSelectedTrx] = useState<any>(null);
 
-  // 1. FETCH SEKALI SAJA (AMBIL SEMUA DATA)
+  // State untuk Fitur Baru (Cancel & Complain)
+  const [modalType, setModalType] = useState<"CANCEL" | "COMPLAIN" | null>(null);
+  const [reason, setReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   useEffect(() => {
     const fetchOrders = async () => {
       if (!session) return;
       try {
-        // Memanggil API dengan status ALL agar semua data tersimpan di memori client
         const res = await fetch(`/api/user/orders?status=ALL`);
         const data = await res.json();
         setAllTransactions(Array.isArray(data) ? data : []);
       } catch (e) {
         toast.error("Gagal memuat pesanan");
       } finally {
-        // Memberikan sedikit delay agar transisi loading lebih smooth
         setTimeout(() => setLoading(false), 500);
       }
     };
     fetchOrders();
   }, [session]);
 
-  // 2. FILTER DATA DI CLIENT (INSTAN TANPA FETCH ULANG)
   const filteredTransactions = useMemo(() => {
     if (activeTab === "ALL") return allTransactions;
-    
-    // Logika filter: Sesuaikan jika status PAID di DB-mu punya alias (SETTLEMENT/CAPTURE)
     return allTransactions.filter((trx) => {
-      if (activeTab === "PAID") {
-        return ["PAID", "SETTLEMENT", "CAPTURE"].includes(trx.status);
-      }
+      if (activeTab === "PAID") return ["PAID", "SETTLEMENT", "CAPTURE", "PROCESSING"].includes(trx.status);
       return trx.status === activeTab;
     });
   }, [activeTab, allTransactions]);
 
-  const handleOpenTracking = (trx: any) => {
-    setSelectedTrx(trx);
-    setIsTrackingOpen(true);
-  };
+  // Handler Submit Action (Cancel/Complain)
+const handleActionSubmit = async () => {
+  if (!reason) return toast.error("Silakan pilih alasan");
+  setIsSubmitting(true);
+  
+  const isCancel = modalType === "CANCEL";
+  const endpoint = isCancel ? "/api/user/orders/cancel" : "/api/user/orders/complain";
+  
+  try {
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoice: selectedTrx.invoice, reason }),
+    });
+    
+    if (res.ok) {
+      if (isCancel) {
+        toast.success("Pesanan berhasil dibatalkan");
+        setModalType(null);
+        router.reload();
+      } else {
+        // LOGIKA REDIRECT WHATSAPP
+        const phoneNumber = "6281370008002"; // Ganti dengan nomor WA Norvine (awalan 62)
+        const message = `Halo Norvine, saya ingin mengajukan komplain.\n\n` +
+                        `*No. Invoice:* ${selectedTrx.invoice}\n` +
+                        `*Alasan:* ${reason}\n\n` +
+                        `Mohon bantuannya untuk proses lebih lanjut. Terima kasih.`;
+        
+        const waLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+        
+        toast.success("Membuka WhatsApp...");
+        setModalType(null);
+        
+        // Redirect ke WA di tab baru
+        window.open(waLink, '_blank');
+      }
+    } else {
+      const err = await res.json();
+      toast.error(err.error || "Gagal memproses permintaan");
+    }
+  } catch (e) {
+    toast.error("Terjadi kesalahan koneksi");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const copyInvoice = (e: React.MouseEvent, inv: string) => {
     e.preventDefault(); 
@@ -83,11 +136,15 @@ export default function UserOrdersPage() {
     router.push(`/payment/${trx.invoice}`);
   };
 
+  const handleOpenTracking = (trx: any) => {
+    setSelectedTrx(trx);
+    setIsTrackingOpen(true);
+  };
+
   return (
     <div className="min-h-screen pb-10 bg-gray-50/30">
       <div className="max-w-4xl mx-auto sm:px-2">
         
-        {/* Tab Nav - Sekarang Berpindah Secara Instan */}
         <div className="md:mt-4 bg-white shadow-sm flex border-b border-gray-100 overflow-x-auto no-scrollbar">
           {TABS.map((tab) => (
             <button
@@ -119,7 +176,6 @@ export default function UserOrdersPage() {
               return (
                 <div key={trx.id} className={`bg-white shadow-sm border border-gray-100 ${isExpired ? "opacity-70" : ""}`}>
                   
-                  {/* Header Card */}
                   <div className="px-3 py-2 border-b border-gray-50 flex items-center justify-between">
                     <span 
                       className="text-[14px] text-gray-900 font-semibold cursor-pointer hover:text-zinc-600 flex items-center gap-1" 
@@ -132,7 +188,6 @@ export default function UserOrdersPage() {
                     </span>
                   </div>
 
-                  {/* Items Container */}
                   <Link href={`/user/orders/${trx.invoice}`} className="block hover:bg-gray-50/30 transition-colors">
                     {trx.items?.slice(0, 1).map((item: any) => (
                       <div key={item.id} className="flex items-center gap-3 px-3 py-3">
@@ -162,14 +217,13 @@ export default function UserOrdersPage() {
                     )}
                   </Link>
 
-                  {/* Footer Card */}
                   <div className="px-3 py-3 border-t border-dashed border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-slate-50">
                     <div className="flex flex-row grow justify-between items-center text-gray-400 text-[12px]">
                       <div className="flex flex-row gap-1">
                         {isExpired ? <FiAlertCircle size={14} className="text-red-400" /> : <FiInfo size={14} className="text-sky-400" />}
                         <span className="text-[11px] font-medium">
                           {trx.status === "PENDING" ? "Segera selesaikan pembayaran" : 
-                           isExpired ? "Pesanan dibatalkan sistem" : "Pesanan Anda sedang diproses"}
+                            isExpired ? "Pesanan dibatalkan sistem" : "Pesanan Anda sedang diproses"}
                         </span>
                       </div>
                       <div className="flex flex-col items-end lg:px-4">
@@ -181,6 +235,26 @@ export default function UserOrdersPage() {
                     </div>
                     
                     <div className="flex items-center justify-end gap-2">
+                      {/* BUTTON CANCEL */}
+                      {trx.status === "PENDING" && (
+                        <button 
+                          onClick={() => { setSelectedTrx(trx); setModalType("CANCEL"); }}
+                          className="px-3 py-2 text-[12px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase"
+                        >
+                          Batal
+                        </button>
+                      )}
+                      
+                      {/* BUTTON COMPLAIN */}
+                      {(trx.status === "SHIPPED" || trx.status === "COMPLETED") && (
+                        <button 
+                          onClick={() => { setSelectedTrx(trx); setModalType("COMPLAIN"); }}
+                          className="px-3 py-2 text-[12px] font-bold text-orange-500 hover:text-orange-600 transition-colors uppercase"
+                        >
+                          Komplain
+                        </button>
+                      )}
+
                       <OrderActionButton 
                         trx={trx} 
                         handlePayment={handlePayment} 
@@ -196,7 +270,55 @@ export default function UserOrdersPage() {
         </div>
       </div>
 
-      {/* Modal Lacak (Di luar loop agar performa lebih ringan) */}
+      {/* MODAL PILIHAN ALASAN (Sesuai style Norvine: No Rounded) */}
+      {modalType && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white w-full max-w-sm rounded-none shadow-2xl">
+            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-sm font-bold uppercase tracking-tight">
+                {modalType === "CANCEL" ? "Batalkan Pesanan" : "Ajukan Komplain"}
+              </h3>
+              <button onClick={() => setModalType(null)} className="text-gray-400"><FiX size={20} /></button>
+            </div>
+            
+            <div className="p-4 space-y-2">
+              <p className="text-xs text-gray-400 mb-3 uppercase tracking-wider">Pilih Alasan:</p>
+              {(modalType === "CANCEL" ? CANCEL_REASONS : COMPLAIN_REASONS).map((r) => (
+                <label 
+                  key={r} 
+                  className={`flex items-center gap-3 p-3 cursor-pointer border ${reason === r ? 'border-zinc-900 bg-zinc-50' : 'border-gray-100 hover:bg-gray-50'}`}
+                >
+                  <input 
+                    type="radio" 
+                    name="reason" 
+                    className="w-4 h-4 accent-zinc-900" 
+                    onChange={() => setReason(r)} 
+                    checked={reason === r}
+                  />
+                  <span className="text-xs text-gray-700 font-medium">{r}</span>
+                </label>
+              ))}
+            </div>
+
+            <div className="p-4 flex gap-2">
+              <button 
+                onClick={() => setModalType(null)}
+                className="flex-1 py-3 text-xs font-bold text-gray-400 uppercase tracking-widest border border-gray-100 transition-all"
+              >
+                Kembali
+              </button>
+              <button 
+                disabled={isSubmitting || !reason}
+                onClick={handleActionSubmit}
+                className="flex-1 py-3 text-xs font-bold bg-zinc-900 text-white uppercase tracking-widest transition-all disabled:opacity-30"
+              >
+                {isSubmitting ? "Memproses..." : "Konfirmasi"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <TrackingModal 
         isOpen={isTrackingOpen} 
         onClose={() => setIsTrackingOpen(false)} 
