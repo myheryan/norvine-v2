@@ -239,17 +239,17 @@ const handleActionSubmit = async () => {
                       {trx.status === "PENDING" && (
                         <button 
                           onClick={() => { setSelectedTrx(trx); setModalType("CANCEL"); }}
-                          className="px-3 py-2 text-[12px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase"
+                          className="bg-black rounded-md  px-3 py-2 text-[12px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase"
                         >
                           Batal
                         </button>
                       )}
                       
                       {/* BUTTON COMPLAIN */}
-                      {(trx.status === "SHIPPED" || trx.status === "COMPLETED") && (
+                      {trx.status === "COMPLETED" && (
                         <button 
                           onClick={() => { setSelectedTrx(trx); setModalType("COMPLAIN"); }}
-                          className="px-3 py-2 text-[12px] font-bold text-orange-500 hover:text-orange-600 transition-colors uppercase"
+                          className="bg-black rounded-md px-3 py-2 text-[12px] font-bold text-orange-400 hover:text-orange-600 transition-colors uppercase"
                         >
                           Komplain
                         </button>
