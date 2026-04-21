@@ -106,6 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (paymentMethod !== "qris") midtransParam.bank_transfer = { bank: paymentMethod.replace('_va', '') };
 
       const chargeResponse = await coreApi.charge(midtransParam);
+      const rawExpiry = chargeResponse.expiry_time; // "2026-04-21 09:32:59"
 
       // E. Update Stok (Tetap sama)
       for (const item of validatedItems) {
@@ -134,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           vaNumber: chargeResponse.va_numbers?.[0]?.va_number || null,
           bankName: chargeResponse.va_numbers?.[0]?.bank || (paymentMethod === 'qris' ? 'QRIS' : paymentMethod),
           qrUrl: chargeResponse.actions?.find((a: any) => a.name === "generate-qr-code")?.url || null,
-          paymentExpiry: chargeResponse.expiry_time ? new Date(chargeResponse.expiry_time) : null,
+          paymentExpiry: rawExpiry ? new Date(rawExpiry.replace(" ", "T") + "+07:00") : null,
           rawPaymentRes: chargeResponse as any, 
           shipment: {
             create: {
