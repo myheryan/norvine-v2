@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { 
       orderId, paymentMethod, shippingService, 
-      useInsurance, items, promoCode, address, recipientName, 
+      useInsurance, items, district, city, promoCode, address, recipientName, 
       recipientPhone, totalWeight, dimensions, notes,
       shippingDetails 
     } = req.body;
@@ -146,8 +146,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               ursaCode: shippingDetails.ursaCode,
               weight: totalWeight || 0,
               apiPayload: {
+                destination: `${district}, ${city}`,
                 dimensions: dimensions || { length: 10, width: 10, height: 10 },
-                hasInsurance: insuranceCost > 0, // <--- Cukup tambahkan flag ini
+                hasInsurance: insuranceCost > 0, 
                 insuranceValue: insuranceCost
               }
             }
