@@ -121,8 +121,8 @@ export default function OrderDetailPage() {
 
         {/* INFORMASI PENGIRIMAN & LOG PENGIRIMAN */}
         <div className="bg-white p-6 shadow-sm border-t-4 border-surel">
-          <div className="flex flex-col md:flex-row gap-8">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+            <div className="md:col-span-4">
                <h3 className="text-[14px] font-bold text-black mb-4 uppercase tracking-widest flex items-center gap-2">
                  <FiTruck className="text-[#26aa99]" /> Alamat Pengiriman
                </h3>
@@ -134,20 +134,19 @@ export default function OrderDetailPage() {
             </div>
             
             {/* RIWAYAT STATUS DETAIL */}
-            <div className="md:w-[45%] md:border-l border-gray-100 md:pl-8">
+            <div className="md:col-span-8 md:border-l border-gray-100 md:pl-8">
                <p className="text-[11px] font-bold text-gray-600 uppercase tracking-widest mb-4 flex justify-between">
                  <span>Riwayat Status</span>
                  <button className="text-[#26aa99] lowercase font-normal">Lihat Detail</button>
                </p>
-               <div className="relative space-y-6 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[1px] before:bg-gray-100">
+               <div className="relative space-y-2 before:absolute before:left-[6px] before:top-2 before:bottom-2 before:w-[1px] before:bg-gray-100">
                   {order.history?.map((hist: any, index: number) => (
-                    <div key={hist.id} className={`relative pl-7 ${index !== 0 ? 'opacity-60' : ''}`}>
-                      <div className={`absolute left-0 top-1 w-4 h-4 rounded-full flex items-center justify-center z-10 ${index === 0 ? 'bg-[#26aa99] shadow-md' : 'bg-gray-200'}`}>
+                    <div key={hist.id} className={`relative pl-2`}>
+                      <div className={`absolute left-0 top-1 w-3 h-3 rounded-full flex items-center justify-center z-10 ${index === 0 ? 'bg-[#26aa99] shadow-md' : 'bg-gray-200'}`}>
                         {index === 0 && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
                       </div>
-                      <div>
-                        <p className={`text-[12px] font-bold uppercase ${index === 0 ? 'text-[#26aa99]' : 'text-gray-600'}`}>{hist.status}</p>
-                        <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">{hist.notes || `Status pesanan berubah menjadi ${hist.status}`}</p>
+                      <div className="flex flex-col md:flex-row-reverse justify-end md:gap-5 pl-3">
+                        <p className="text-[11px] text-gray-700 mt-0.5 leading-snug">{hist.notes || `Status pesanan berubah menjadi ${hist.status}`}</p>
                         <p className="text-[10px] text-gray-600 mt-1">{new Date(hist.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>
                       </div>
                     </div>
