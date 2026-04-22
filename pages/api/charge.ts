@@ -106,16 +106,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (paymentMethod !== "qris") midtransParam.bank_transfer = { bank: paymentMethod.replace('_va', '') };
 
       const chargeResponse = await coreApi.charge(midtransParam);
-      const rawExpiry = chargeResponse.expiry_time; // "2026-04-21 09:32:59"
+      const rawExpiry = chargeResponse.expiry_time; 
 
-      // E. Update Stok (Tetap sama)
       for (const item of validatedItems) {
         await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
       }
 
 
-      console.log(`weight : ${totalWeight}`)
-      // F. Simpan Transaksi & Shipment (Shipping Hub Integration)
       const transaction = await tx.transaction.create({
         data: {
           invoice: orderId,
