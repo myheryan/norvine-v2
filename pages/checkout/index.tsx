@@ -111,7 +111,7 @@ const logistics = useMemo(() => {
   return orderData.items.reduce((acc, item) => {
     const qty = Number(item.quantity) || 1;
     
-    const convertedWeight = Number(WeightToGram(item.weight));
+    const convertedWeight = item.weight;
     const itemWeight = convertedWeight > 0 ? convertedWeight : NORVINE_CONFIG.DEFAULT_WEIGHT; 
 
     const dim = item.dimensions || {};
@@ -142,7 +142,7 @@ const logistics = useMemo(() => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               destination: destinationStr, 
-              weight: logistics.totalWeight,
+              weight: Number(WeightToGram(logistics.totalWeight)),
               width: logistics.totalWidth,
               length: logistics.maxLength,
               height: logistics.maxHeight
@@ -292,7 +292,7 @@ const logistics = useMemo(() => {
     }
   }
 
-  const isCheckoutDisabled = isSubmitting || isCheckingShipping || !selectedRate;
+  const isCheckoutDisabled = isSubmitting || isCheckingShipping || !selectedRate || !!hasPendingOrder;
 
   if (!isMounted || status === 'loading') {
     return (
@@ -349,7 +349,7 @@ const logistics = useMemo(() => {
               setOrderData={setOrderData}
               setIsModalOpen={setIsModalOpen}
               appliedPromo={orderData.appliedPromo}
-              isCheckoutDisabled={isSubmitting || isCheckingShipping || !selectedRate || !!hasPendingOrder}
+              isCheckoutDisabled={isCheckoutDisabled}
             />
           </form>
         </div>
