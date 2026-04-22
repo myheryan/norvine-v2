@@ -162,20 +162,12 @@ export const formatToIndonesianPhone = (phone: string): string => {
 };
 
 
-export const displayPhoneNumber = (phone: string): string => {
-  const s = sanitizePhoneNumber(phone);
-  const match = s.match(/^(\d{4})(\d{4})(\d{4,5})$/);
-  if (match) {
-    return `${match[1]}-${match[2]}-${match[3]}`;
-  }
-  return s;
-};
 
-export const formatPhoneNumber = (value) => {
+export const formatPhoneNumber = (value: any) => {
   // 1. Ambil hanya digit angka saja
   let digits = value.replace(/\D/g, '');
 
-  // 2. Jika user mencoba menghapus sampai habis, kembalikan kosong atau tetap +62
+  // 2. Jika user mencoba menghapus sampai habis, kembalikan kosong
   if (digits.length === 0) return '';
 
   // 3. Tangani awalan: jika user ngetik "08..." ubah jadi "628..."
@@ -185,23 +177,29 @@ export const formatPhoneNumber = (value) => {
   
   // Jika tidak diawali 62 (misal langsung 821), paksa tambahkan 62 di depan
   if (!digits.startsWith('62') && digits.length > 0) {
-    digits = '62' + digits;
+    digits = '62' + digits; // Hapus '+' di sini biar hitungan slice nggak kacau
   }
 
   // 4. Batasi maksimal 13 digit angka (setelah angka 62)
   // Total digit maksimal: 62 + 13 angka = 15 digits
   const slicedDigits = digits.slice(0, 15);
 
-  // 5. Proses pemformatan: +62 8xx xxxx xxxx
+  // 5. Proses pemformatan: +62 8xx xxxx xxxx (3 - 4 - 4)
   const countryCode = '+62';
   const rest = slicedDigits.substring(2); // Ambil angka setelah '62'
   
-  // Kelompokkan sisa angka per 4 digit
-  const parts = rest.match(/.{1,4}/g) || [];
+  if (rest.length === 0) return countryCode;
+
+  // Potong angka dengan format 3 - 4 - 4 - sisanya (kalau ada kepanjangan)
+  const part1 = rest.slice(0, 3);
+  const part2 = rest.slice(3, 7);
+  const part3 = rest.slice(7, 11);
+  const part4 = rest.slice(11, 15); 
+
+  // Gabungkan array yang ada isinya (mengabaikan string kosong)
+  const parts = [part1, part2, part3, part4].filter(Boolean);
   
-  return rest.length > 0 
-    ? `${countryCode} ${parts.join(' ')}` 
-    : countryCode;
+  return `${countryCode} ${parts.join(' ')}`;
 };
 
 export const WeightToGram = (product_weight: any) => {

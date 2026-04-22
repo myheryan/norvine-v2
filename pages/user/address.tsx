@@ -6,7 +6,7 @@ import prisma from "@/lib/prisma";
 import AddressManager from "@/components/user/AddressManager";
 import { MapPin, Plus, Trash2, Edit3, CheckCircle2, MapPinSearch } from "lucide-react";
 import { toast } from "sonner";
-import { displayPhoneNumber } from "@/lib/utils";
+import { formatPhoneNumber } from "@/lib/utils";
 
 export async function getServerSideProps(context: any) {
   try {
@@ -125,7 +125,7 @@ export default function AddressPage({ addresses }: { addresses: any[] }) {
                   <div className="space-y-1 divide-x-2 divide-amber-700 divide-y">
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-bold text-zinc-900">{address.recipient}</span>
-                        <p className="text-xs text-zinc-500 font-medium ">{displayPhoneNumber(address.phone)}</p>
+                        <p className="text-xs text-zinc-500 font-medium ">{formatPhoneNumber(address.phone)}</p>
                     </div>
                   </div>
                 </div>
