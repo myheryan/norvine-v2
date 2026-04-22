@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { 
       orderId, paymentMethod, shippingService, 
       useInsurance, items, district, city, promoCode, address, recipientName, 
-      recipientPhone, totalWeight, dimensions, notes,
+      recipientPhone, dimensions, notes,
       shippingDetails 
     } = req.body;
 
@@ -141,7 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               courierCode: shippingDetails.courier || "LION",
               courierService: shippingDetails.service || shippingService,
               destination: `${district}, ${city}`,
-              originCode: c.originCode,
+              originCode: shippingDetails.originCode,
               destinationCode: shippingDetails.destinationCode,
               ursaCode: shippingDetails.ursaCode,
               isInsurance: insuranceCost > 0, 
