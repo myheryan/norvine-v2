@@ -211,18 +211,24 @@ model Shipment {
   isInsurance    Boolean  @default(false)
   insuranceAmount Int      @default(0)
   awbNumber      String?     @unique // No Resi / STT
-  courierCode    String      // e.g., "LION"
-  courierService String      // e.g., "REGPACK"
+  courierCode    String     
+  courierService String      
   
   // Data Teknis Rute (Dipindahkan dari Transaction)
-  originCode      String?    // e.g., "CGK"
-  destinationCode String?    // e.g., "BDO"
-  ursaCode        String?    // e.g., "1KDY" (Khusus Lion Parcel)
+  destination     String? 
+  originCode      String?   
+  destinationCode String?   
+  ursaCode        String?    
 
   // Operasional
   status         String      @default("PENDING")
   weight         Float       @default(0)
-  apiPayload     Json?       // Untuk menyimpan history response dari API
+  apiPayload     Json?       
+
+  printStatus     PrintStatus    @default(NOT_PRINTED)
+  printCount      Int            @default(0) 
+  firstPrintedAt  DateTime?     
+  lastPrintedAt   DateTime?      
   
   createdAt      DateTime    @default(now())
   updatedAt      DateTime    @updatedAt
@@ -386,4 +392,10 @@ enum OrderStatus {
   COMPLETED
   CANCELLED
   EXPIRED
+  FAILED   
+}
+
+enum PrintStatus {
+  NOT_PRINTED
+  PRINTED
 }

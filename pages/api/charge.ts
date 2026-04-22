@@ -141,15 +141,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             create: {
               courierCode: shippingDetails.courier || "LION",
               courierService: shippingDetails.service || shippingService,
+              destination: `${district}, ${city}`,
               originCode: shippingDetails.originCode,
               destinationCode: shippingDetails.destinationCode,
               ursaCode: shippingDetails.ursaCode,
-              weight: totalWeight || 0,
+              isInsurance: insuranceCost > 0, 
+              insuranceAmount: insuranceCost || 0,
+              weight: totalWeight,              
               apiPayload: {
-                destination: `${district}, ${city}`,
                 dimensions: dimensions || { length: 10, width: 10, height: 10 },
-                hasInsurance: insuranceCost > 0, 
-                insuranceValue: insuranceCost
               }
             }
           },
