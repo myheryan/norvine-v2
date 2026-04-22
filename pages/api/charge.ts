@@ -113,6 +113,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
       }
 
+
+      console.log(`weight : ${totalWeight}`)
       // F. Simpan Transaksi & Shipment (Shipping Hub Integration)
       const transaction = await tx.transaction.create({
         data: {
@@ -142,12 +144,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               courierCode: shippingDetails.courier || "LION",
               courierService: shippingDetails.service || shippingService,
               destination: `${district}, ${city}`,
-              originCode: shippingDetails.originCode,
+              originCode: c.originCode,
               destinationCode: shippingDetails.destinationCode,
               ursaCode: shippingDetails.ursaCode,
               isInsurance: insuranceCost > 0, 
               insuranceAmount: insuranceCost || 0,
-              weight: totalWeight,              
+              weight: shippingDetails.totalWeight,              
               apiPayload: {
                 dimensions: dimensions || { length: 10, width: 10, height: 10 },
               }
