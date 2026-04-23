@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from '@/lib/auth';
 import { NORVINE_CONFIG } from '@/types/norvine-default';
+import { sendInvoiceEmail } from '@/lib/email-template';
 
 const PLATFORM_SERVICE_FEE = NORVINE_CONFIG.SERVICE_FEE;
 
@@ -172,10 +173,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      return { transaction };
+      return { transaction, validatedItems };
     }, {
       timeout: 15000 
     });
+
+    const { transaction, validatedItems } = result;
+    
+    sendInvoiceEmail(session.user?.email as string, {
+      ...transaction,
+      items: validatedItems, // Kita pakai validatedItems karena sudah ada field 'name' produk
+    }).catch(err => console.error("Gagal kirim email invoice:", err));
 
     return res.status(200).json(result);
 

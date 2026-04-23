@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
-import { signIn, getSession } from "next-auth/react";
+import { signIn, signOut, getSession } from "next-auth/react";
 import Link from "next/link";
 
 import { 
@@ -20,6 +20,12 @@ export default function LoginPage() {
   
   const router = useRouter();
   const { callbackUrl } = router.query;
+
+
+if (error) {
+  console.error("Session error detected, logging out...");
+  signOut({ callbackUrl: '/login' }); // Hapus session dan redirect
+}
 
   const handleGoogleLogin = async () => {
         const session = await getSession();
