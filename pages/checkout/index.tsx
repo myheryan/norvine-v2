@@ -333,22 +333,26 @@ const logistics = useMemo(() => {
                 setUseInsurance={setUseInsurance}
               />
             </div>
-
-            <OrderSummary 
-              options={options} 
-              setOptions={setOptions} 
-              subtotal={orderData.subtotal} 
-              discount={orderData.discount} 
-              shippingCost={shippingCost} 
-              insuranceCost={insuranceCost} 
-              serviceFee={serviceFee}      
-              total={total}           
-              isSubmitting={isSubmitting} 
-              setOrderData={setOrderData}
-              setIsModalOpen={setIsModalOpen}
-              appliedPromo={orderData.appliedPromo}
-              isCheckoutDisabled={isSubmitting || isCheckingShipping || !selectedRate || !!hasPendingOrder}
-            />
+              <OrderSummary 
+                options={options} 
+                setOptions={setOptions} 
+                subtotal={orderData.subtotal} 
+                discount={orderData.discount} 
+                shippingCost={shippingCost} 
+                insuranceCost={insuranceCost} 
+                serviceFee={serviceFee}      
+                total={total}           
+                isSubmitting={isSubmitting} 
+                
+                // 👇 TAMBAHKAN DUA PROP INI AGAR SHIMMER AKTIF
+                isCheckingShipping={isCheckingShipping} 
+                selectedRate={selectedRate} 
+                
+                setOrderData={setOrderData}
+                setIsModalOpen={setIsModalOpen}
+                appliedPromo={orderData.appliedPromo}
+                isCheckoutDisabled={isSubmitting || isCheckingShipping || !selectedRate || !!hasPendingOrder}
+              />
           </form>
         </div>
       </div>
