@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { FiChevronUp, FiChevronDown, FiCheckCircle, FiAlertCircle, FiLoader, FiTruck, FiChevronRight } from 'react-icons/fi'
+import { FiChevronUp, FiChevronDown, FiCheckCircle, FiAlertCircle, FiLoader, FiTruck, FiChevronRight, FiCreditCard } from 'react-icons/fi'
 import { formatRp, cn } from '@/lib/utils'
 import { FiTagIcon } from '../icons'
 
@@ -23,9 +23,9 @@ interface SummaryProps {
   appliedPromo?: { code: string | null; name?: string };
 }
 
-// Komponen Shimmer untuk efek loading angka yang mulus
+// Shimmer yang selaras dengan warna zinc-50 OrderItems
 const Shimmer = ({ className }: { className?: string }) => (
-  <div className={cn("animate-pulse bg-zinc-100 rounded-none", className)} />
+  <div className={cn("animate-pulse bg-zinc-100/80", className)} />
 )
 
 export default function OrderSummary({ 
@@ -60,7 +60,7 @@ export default function OrderSummary({
 
   const gateways = [
     {
-      title: 'Transfer Bank (Layanan Midtrans)',
+      title: 'Transfer Bank (Midtrans)',
       methods: [
         { id: 'bca_va', label: 'BCA Virtual Account', icon: 'BCA' },
         { id: 'qris', label: 'QRIS / Midtrans', icon: 'QRIS' },
@@ -69,39 +69,50 @@ export default function OrderSummary({
   ];
 
   return (
-    <div className="w-full lg:w-[400px] shrink-0 space-y-3 lg:sticky lg:top-8">
+    <div className="w-full lg:w-[400px] shrink-0 space-y-4 lg:sticky lg:top-8">
       
-      {/* SECTION 1: METODE PEMBAYARAN - Style samakan dengan Card Alamat/OrderItems */}
-      <div className="bg-white p-6 border border-zinc-100 shadow-sm rounded-none">
-        <h3 className="text-[11px] font-bold text-zinc-900 mb-5 uppercase tracking-[0.2em]">Metode Pembayaran</h3>
-        <div className="space-y-6">
+      {/* 1. METODE PEMBAYARAN - Mengikuti Header OrderItems */}
+      <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
+        <div className="bg-zinc-50/50 p-4 border-b border-zinc-100">
+          <h3 className="text-sm font-black text-zinc-600 flex items-center gap-2">
+            <FiCreditCard size={16} /> Metode Pembayaran
+          </h3>
+        </div>
+        
+        <div className="p-4 space-y-5">
           {gateways.map((group, idx) => (
             <div key={idx} className="space-y-3">
-              <p className="text-[9px] uppercase tracking-[0.3em] text-zinc-400 font-normal">{group.title}</p>
-              <div className="space-y-4">
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">{group.title}</p>
+              <div className="space-y-3">
                 {group.methods.map((method) => (
                   <label key={method.id} className="flex items-center justify-between cursor-pointer group">
                     <div className="flex items-center gap-3">
                       <div className={cn(
-                        "w-12 h-7 border flex items-center justify-center text-[9px] italic transition-all rounded-none",
-                        options.payment === method.id ? "bg-black text-white border-black" : "bg-zinc-50 border-zinc-100 text-zinc-800"
+                        "w-12 h-7 border flex items-center justify-center text-[9px] italic transition-all",
+                        options.payment === method.id ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-50 border-zinc-100 text-zinc-800"
                       )}>
                         {method.icon}
                       </div>
                       <span className={cn(
-                        "text-[11px] uppercase tracking-tight transition-colors",
-                        options.payment === method.id ? "text-black font-bold" : "text-zinc-500 group-hover:text-zinc-900"
+                        "text-sm transition-colors",
+                        options.payment === method.id ? "font-bold text-zinc-900" : "text-zinc-600 group-hover:text-zinc-900"
                       )}>
                         {method.label}
                       </span>
                     </div>
-                    <input 
-                      type="radio" 
-                      name="payment_method" 
-                      checked={options.payment === method.id} 
-                      onChange={() => setOptions({ ...options, payment: method.id })}
-                      className="w-4 h-4 accent-black"
-                    />
+                    <div className={cn(
+                        "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                        options.payment === method.id ? "border-zinc-900 bg-zinc-900" : "border-zinc-200"
+                    )}>
+                      <input 
+                        type="radio" 
+                        name="payment_method" 
+                        checked={options.payment === method.id} 
+                        onChange={() => setOptions({ ...options, payment: method.id })}
+                        className="hidden"
+                      />
+                      {options.payment === method.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                    </div>
                   </label>
                 ))}
               </div>
@@ -110,121 +121,117 @@ export default function OrderSummary({
         </div>
       </div>
 
-      {/* SECTION 2: PROMO & RINGKASAN */}
-      <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden rounded-none">
-        {/* Promo Bar */}
-        <div className="p-4 bg-zinc-50/50 border-b border-zinc-100">
+      {/* 2. RINGKASAN TRANSAKSI */}
+      <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
+        <div className="bg-zinc-50/50 p-4 border-b border-zinc-100">
+           <h3 className="text-sm font-black text-zinc-600 flex items-center gap-2">Ringkasan Transaksi</h3>
+        </div>
+
+        {/* Promo Section - Mirroring Catatan Style */}
+        <div className="p-4 border-b border-zinc-50 bg-zinc-50/30">
           <button 
             type="button"
             onClick={() => setIsModalOpen(true)}
             className={cn(
-              "w-full flex items-center justify-between p-3 border transition-all rounded-none",
-              discount > 0 ? "border-black bg-white" : "border-zinc-200 bg-white hover:border-black"
+              "w-full flex items-center justify-between p-3 border transition-all",
+              discount > 0 ? "border-zinc-900 bg-white" : "border-zinc-100 bg-white hover:border-zinc-300"
             )}
           >
             <div className="flex items-center gap-3">
               <FiTagIcon size={18} />
-              <div className="flex flex-col items-start text-left">
-                <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest leading-none mb-1">
-                  {discount > 0 ? 'Promo Terpasang' : 'Gunakan Promo'}
-                </span>
-                <span className="text-[9px] text-zinc-500 tracking-tighter uppercase">
-                  {discount > 0 ? (appliedPromo?.code || 'Diskon Berhasil') : 'Klik untuk lihat voucher'}
-                </span>
+              <div className="text-left">
+                <p className="text-xs font-bold text-zinc-900">
+                  {discount > 0 ? 'Promo Berhasil Dipasang' : 'Punya Kode Promo?'}
+                </p>
+                <p className="text-[10px] text-zinc-500">
+                  {discount > 0 ? (appliedPromo?.code || 'DISKON') : 'Klik untuk masukan voucher'}
+                </p>
               </div>
             </div>
             <FiChevronRight className="text-zinc-300" size={16} />
           </button>
         </div>
 
-        <div className="p-6">
-          <h3 className="text-[11px] font-bold text-zinc-900 mb-5 uppercase tracking-[0.2em]">Ringkasan Transaksi</h3>
-          
-          <div className="space-y-4">
-            <div className="flex justify-between text-[11px] uppercase tracking-tighter">
-              <span className="text-zinc-400">Subtotal Produk</span>
-              <span className="text-zinc-900 font-medium">{formatRp(subtotal)}</span>
-            </div>
-
-            {/* Ongkos Kirim dengan Shimmer */}
-            <div className="flex justify-between text-[11px] uppercase tracking-tighter items-center">
-              <span className="text-zinc-400">Pengiriman</span>
-              {isCheckingShipping ? (
-                <Shimmer className="h-4 w-20" />
-              ) : !selectedRate ? (
-                <span className="text-zinc-300 italic tracking-normal lowercase">menunggu alamat...</span>
-              ) : (
-                <span className="text-zinc-900 font-medium">{formatRp(shippingCost)}</span>
-              )}
-            </div>
-
-            <div className="pt-2">
-              <button 
-                type="button"
-                onClick={() => setShowDetails(!showDetails)}
-                className="flex items-center gap-1 text-zinc-400 hover:text-black transition-colors text-[10px] uppercase font-bold tracking-widest"
-              >
-                <span>Rincian Biaya</span>
-                {showDetails ? <FiChevronUp /> : <FiChevronDown />}
-              </button>
-              
-              {showDetails && (
-                <div className="mt-4 space-y-3 border-l-2 border-zinc-900 pl-4 animate-in slide-in-from-top-1 duration-300">
-                  {insuranceCost > 0 && (
-                    <div className="flex justify-between text-[11px] uppercase text-zinc-500">
-                      <span>Asuransi Pengiriman</span>
-                      <span>{formatRp(insuranceCost)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-[11px] uppercase text-zinc-500">
-                    <span>Biaya Layanan</span>
-                    <span>{formatRp(serviceFee)}</span>
-                  </div>
-                  {discount > 0 && (
-                    <div className="flex justify-between text-[11px] uppercase text-[#00bfa5] font-bold">
-                      <span>Potongan Promo</span>
-                      <span>-{formatRp(discount)}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+        <div className="p-4 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-zinc-600">Total Harga Produk</span>
+            <span className="font-bold text-zinc-900">{formatRp(subtotal)}</span>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-zinc-100">
-            {/* Total dengan Shimmer */}
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-[11px] uppercase text-zinc-400 font-bold tracking-[0.2em]">Total Tagihan</span>
+          <div className="flex justify-between text-sm items-center">
+            <span className="text-zinc-600">Ongkos Kirim</span>
+            {isCheckingShipping ? (
+              <Shimmer className="h-4 w-20" />
+            ) : !selectedRate ? (
+              <span className="text-xs text-zinc-300 italic">Menunggu alamat...</span>
+            ) : (
+              <span className="font-bold text-zinc-900">{formatRp(shippingCost)}</span>
+            )}
+          </div>
+
+          <div className="pt-2">
+            <button 
+              type="button"
+              onClick={() => setShowDetails(!showDetails)}
+              className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-zinc-900 transition-colors"
+            >
+              <span>Rincian Biaya</span>
+              {showDetails ? <FiChevronUp /> : <FiChevronDown />}
+            </button>
+            
+            {showDetails && (
+              <div className="mt-3 space-y-2 border-l-2 border-zinc-100 pl-4 animate-in slide-in-from-top-1 duration-200">
+                <div className="flex justify-between text-xs text-zinc-500">
+                  <span>Biaya Layanan</span>
+                  <span>{formatRp(serviceFee)}</span>
+                </div>
+                {insuranceCost > 0 && (
+                  <div className="flex justify-between text-xs text-zinc-500">
+                    <span>Asuransi</span>
+                    <span>{formatRp(insuranceCost)}</span>
+                  </div>
+                )}
+                {discount > 0 && (
+                  <div className="flex justify-between text-xs text-emerald-600 font-bold">
+                    <span>Potongan Promo</span>
+                    <span>-{formatRp(discount)}</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* TOTAL & ACTION */}
+          <div className="mt-6 pt-4 border-t border-zinc-100">
+            <div className="flex justify-between items-end mb-6">
+              <span className="text-xs font-black text-zinc-600 uppercase">Total Tagihan</span>
               {isCheckingShipping ? (
-                <Shimmer className="h-7 w-32" />
-              ) : !selectedRate ? (
-                <span className="text-lg font-bold text-zinc-200 tracking-tighter">---</span>
+                <Shimmer className="h-8 w-32" />
               ) : (
-                <span className="text-xl font-bold text-zinc-900 tracking-tighter">
+                <span className="text-xl font-black text-zinc-900 tracking-tight">
                   {formatRp(total)}
                 </span>
               )}
             </div>
             
-            {/* ALERT AREA */}
+            {/* ALERT SECTION */}
             <div className="mb-4">
               {hasPendingOrder ? (
-                <div className="p-3 bg-rose-50 border border-rose-100 flex items-start gap-3">
-                  <FiAlertCircle className="text-rose-600 mt-0.5 shrink-0" size={14} />
-                  <div className="flex flex-col">
-                    <p className="text-[10px] font-bold text-rose-600 uppercase tracking-tight">Bayar Tagihan Dahulu</p>
-                    <p className="text-[9px] text-rose-500 uppercase">Selesaikan #{hasPendingOrder}</p>
-                  </div>
+                <div className="p-3 bg-red-50 border border-red-100 flex items-center gap-3">
+                  <FiAlertCircle className="text-red-500 shrink-0" size={16} />
+                  <p className="text-[11px] text-red-600 leading-tight">
+                    Selesaikan pembayaran <strong>#{hasPendingOrder}</strong> sebelum membuat pesanan baru.
+                  </p>
                 </div>
               ) : isCheckingShipping ? (
                 <div className="p-3 bg-zinc-50 border border-zinc-100 flex items-center gap-3">
                   <FiLoader className="text-zinc-400 animate-spin" size={14} />
-                  <span className="text-[10px] text-zinc-400 uppercase tracking-widest font-medium">Sinkronisasi...</span>
+                  <span className="text-xs text-zinc-400">Sinkronisasi biaya...</span>
                 </div>
               ) : !selectedRate ? (
                 <div className="p-3 bg-amber-50 border border-amber-100 flex items-center gap-3">
-                  <FiTruck className="text-amber-600" size={14} />
-                  <span className="text-[10px] text-amber-700 uppercase tracking-widest font-bold">Pilih Alamat</span>
+                  <FiTruck className="text-amber-600" size={16} />
+                  <span className="text-xs text-amber-700 font-semibold">Pilih Alamat & Kurir</span>
                 </div>
               ) : null}
             </div>
@@ -233,21 +240,17 @@ export default function OrderSummary({
               type="submit"
               disabled={isCheckoutDisabled}
               className={cn(
-                "w-full py-4 font-bold text-[11px] uppercase tracking-[0.4em] flex items-center justify-center gap-3 transition-all rounded-none",
+                "w-full py-4 text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all",
                 (isCheckingShipping || !selectedRate || !!hasPendingOrder) 
                   ? "bg-zinc-100 text-zinc-300 cursor-not-allowed" 
                   : "bg-zinc-900 text-white hover:bg-black active:scale-[0.98]"
               )}
             >
               {isSubmitting ? (
-                <FiLoader className="animate-spin" size={16} />
-              ) : isCheckingShipping ? (
-                "Loading..."
-              ) : !selectedRate ? (
-                "Lengkapi Data"
+                <FiLoader className="animate-spin" size={18} />
               ) : (
                 <>
-                  <FiCheckCircle size={16}/>
+                  <FiCheckCircle size={18}/>
                   Bayar Sekarang
                 </>
               )}
