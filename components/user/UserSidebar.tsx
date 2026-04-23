@@ -196,12 +196,6 @@ export default function Sidebar({ pathname, user }: SidebarProps) {
                     className={isActive ? "text-orange-600" : "text-zinc-800"} 
                   />
                   
-                  {/* Badge Notifikasi ala Telegram (Hanya contoh di item pertama) */}
-                  {idx === 0 && (
-                    <div className="absolute -top-2 -right-3 bg-orange-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-[#EBF5FF]">
-                      13
-                    </div>
-                  )}
                 </div>
 
                 {/* Label Teks */}

@@ -25,7 +25,7 @@ export const USER_MENU = [
   {
     title: "Voucher & Koin",
     icon: Ticket,
-    folder: "/user/rewards",
+    folder: "/user/voucher",
     submenu: [
       { label: "Voucher Norvine", href: "", icon: Ticket },
       { label: "Koin Loyalitas", href: "", icon: Coins },

@@ -61,13 +61,13 @@ export default function TrackingModal({ isOpen, onClose, waybill, invoice }: Tra
         {/* Info Area - Minimalist */}
         <div className="p-3 bg-gray-50/50 flex justify-between items-center border-b border-gray-100">
           <div>
-            <p className="text-[9px]  tracking-widest text-gray-400 mb-1">Status Terakhir</p>
+            <p className="text-[9px]  text-gray-400 mb-1">Status Terakhir</p>
             <p className="text-xs text-gray-700 font-normal tracking-wide ">
               {trackingData[0]?.status || "Pending"}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[9px]  tracking-widest text-gray-400 mb-1">No. Resi</p>
+            <p className="text-[9px] text-gray-400 mb-1">No. Resi</p>
             <p className="text-xs text-[#FF5722] font-normal tracking-[0.1em]">{waybill || "BELUM TERSEDIA"}</p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function TrackingModal({ isOpen, onClose, waybill, invoice }: Tra
                       {step.notes || `Pesanan diperbarui ke status ${step.status}`}
                     </p>
 
-                    <p className="text-[9px] text-gray-400 mt-2 tracking-wider font-normal ">
+                    <p className="text-[9px] text-gray-400 mt-2 font-normal ">
                       {new Date(step.createdAt || step.time).toLocaleString('id-ID', { 
                         dateStyle: 'medium', 
                         timeStyle: 'short' 
