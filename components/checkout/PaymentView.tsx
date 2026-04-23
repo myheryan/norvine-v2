@@ -98,10 +98,10 @@ console.log(`ini kodenya : ${AUTH_HEADER}` )
   };
 
   return (
-    <div className="bg-white w-full flex flex-col items-center justify-center border border-gray-200 max-w-4xl shadow-sm md:m-4 antialiased text-gray-700 mx-auto">
+    <div className="bg-white w-full flex flex-col items-center justify-start border border-gray-200 max-w-4xl shadow-sm md:m-4 antialiased text-gray-700 mx-auto">
       
       {/* Header */}
-      <div className="w-full flex items-center gap-4 p-3 border-b border-gray-100">
+      <div className="w-full flex flex-row items-start gap-4 p-3 border-b border-gray-100">
         <button onClick={() => router.back()} className="text-gray-400 hover:text-gray-600 transition-colors">
           <FiArrowLeft size={20} />
         </button>
