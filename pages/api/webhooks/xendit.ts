@@ -12,56 +12,84 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ message: 'Invalid Token' });
   }
 
-  const body = req.body;
-  const { status, qr_id, amount, external_id } = body;
+  const payload = req.body;
+  const { event, data } = payload;
+
+  if (!data) return res.status(400).json({ message: 'No Data Received' });
+
+  // Identifikasi Transaksi
+  const xenditStatus = data.status; // SUCCEEDED, COMPLETED, EXPIRED, FAILED
+  const externalId = data.reference_id || data.external_id; 
+  const qrId = data.qr_id || data.id;
 
   try {
-    // Cari transaksi berdasarkan QR ID (Xendit) atau Invoice (External ID)
-    // Kita simpan QR ID di midtransOrderId sebelumnya
+    // 2. Cari Transaksi berdasarkan Invoice atau QR ID
     const currentOrder = await prisma.transaction.findFirst({
       where: {
         OR: [
-          { midtransOrderId: qr_id || body.qr_code?.id },
-          { invoice: external_id }
+          { invoice: externalId },
+          { midtransOrderId: qrId } // Field ini kita gunakan untuk menyimpan ID Xendit
         ]
       },
-      include: { items: true }
+      include: { 
+        items: true,
+        shipment: true 
+      }
     });
 
     if (!currentOrder) {
-      console.error(`[XENDIT] Order not found for ID: ${qr_id || external_id}`);
-      return res.status(404).json({ message: 'Order not found' });
+      console.error(`[XENDIT] Order Not Found: ${externalId || qrId}`);
+      return res.status(200).json({ message: 'Order ignored' }); 
+    }
+
+    // Idempotency: Jangan proses jika status sudah PAID atau COMPLETED
+    if (currentOrder.status === OrderStatus.PAID || currentOrder.status === OrderStatus.COMPLETED) {
+      return res.status(200).json({ status: 'Already Processed' });
     }
 
     let newStatus: OrderStatus = currentOrder.status;
     let finalNote = "";
 
-    // 2. Pemetaan Status Xendit ke OrderStatus Norvine
-    if (status === 'COMPLETED' || status === 'SUCCEEDED') {
+    // 3. Pemetaan Status Xendit ke OrderStatus Norvine
+    if (xenditStatus === 'SUCCEEDED' || xenditStatus === 'COMPLETED') {
       newStatus = OrderStatus.PAID;
-      finalNote = `Pembayaran QRIS Xendit berhasil diterima sebesar Rp ${amount.toLocaleString('id-ID')}.`;
-    } else if (status === 'EXPIRED') {
+      finalNote = `Pembayaran QRIS via ${data.payment_detail?.source || 'Xendit'} berhasil diterima.`;
+    } 
+    else if (xenditStatus === 'EXPIRED') {
       newStatus = OrderStatus.EXPIRED;
-      finalNote = "Batas waktu pembayaran QRIS habis. Pesanan dibatalkan otomatis.";
-    } else if (status === 'FAILED') {
-      newStatus = OrderStatus.CANCELLED;
-      finalNote = "Pembayaran QRIS gagal.";
+      finalNote = "Batas waktu pembayaran habis. Stok akan dikembalikan otomatis.";
+    } 
+    else if (xenditStatus === 'FAILED') {
+      newStatus = OrderStatus.FAILED;
+      finalNote = "Pembayaran QRIS gagal diproses.";
     }
 
-    // Jika status tidak berubah, selesaikan
+    // Jika tidak ada perubahan status penting, stop di sini
     if (currentOrder.status === newStatus) {
       return res.status(200).json({ status: 'No Change' });
     }
 
-    // 3. Eksekusi Database Transaction (Logika Stok sama dengan Midtrans)
+    // 4. Eksekusi Database Transaction
     await prisma.$transaction(async (tx) => {
-      // Update Status Transaksi
+      
+      // A. Update Status Utama Transaksi
       await tx.transaction.update({
         where: { id: currentOrder.id },
-        data: { status: newStatus }
+        data: { 
+          status: newStatus,
+          updatedAt: new Date()
+        }
       });
 
-      // Catat di History
+      // B. Update Status Shipment (Jika Lunas)
+      if (newStatus === OrderStatus.PAID && currentOrder.shipment) {
+        await tx.shipment.update({
+          where: { transactionId: currentOrder.id },
+          data: { status: 'READY_TO_SHIP' } // Mengubah status string di model Shipment
+        });
+      }
+
+      // C. Catat di OrderHistory
       await tx.orderHistory.create({
         data: {
           transactionId: currentOrder.id,
@@ -70,40 +98,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      // LOGIKA STOK: BERKURANG (Jika dari PENDING ke PAID)
-      // Note: Di checkout.ts stok sudah dikurangi, tapi ini sebagai fail-safe 
-      // atau jika Anda mengubah alur stok hanya berkurang saat PAID.
-      if (newStatus === OrderStatus.PAID && currentOrder.status === OrderStatus.PENDING) {
-        // (Opsional) Jika di checkout.ts sudah kurangi stok, bagian ini bisa di-skip
-        // Tapi jika ingin sinkron dengan webhook Midtrans Anda:
+      // Definisikan array-nya dengan tipe OrderStatus[]
+    const cancellationStatuses: OrderStatus[] = [
+      OrderStatus.EXPIRED, 
+      OrderStatus.FAILED, 
+      OrderStatus.CANCELLED
+    ];
+
+    // Gunakan .includes tanpa error
+    const isCancellation = cancellationStatuses.includes(newStatus);
+          
+      if (isCancellation) {
         for (const item of currentOrder.items) {
           if (item.variantId) {
+            // Kembalikan Stok ke ProductVariant
+            await tx.productVariant.update({
+              where: { id: item.variantId },
+              data: { stock: { increment: item.quantity } }
+            });
+
+            // Catat di StockLog (RESTOCK)
             await tx.stockLog.create({
               data: {
                 variantId: item.variantId,
-                change: -item.quantity,
-                reason: `Pembayaran Terverifikasi Xendit (Inv: ${currentOrder.invoice})`
+                change: item.quantity,
+                reason: `RESTOCK: ${xenditStatus} (Inv: ${currentOrder.invoice})`
               }
             });
           }
         }
       }
 
-      // LOGIKA STOK: KEMBALI (RESTOCK) jika EXPIRED atau CANCELLED
-      const isRestock = ([OrderStatus.EXPIRED, OrderStatus.CANCELLED] as OrderStatus[]).includes(newStatus);
-      if (isRestock) {
+      // E. Logika Audit Stok (Jika Lunas)
+      if (newStatus === OrderStatus.PAID) {
         for (const item of currentOrder.items) {
           if (item.variantId) {
-            await tx.productVariant.update({
-              where: { id: item.variantId },
-              data: { stock: { increment: item.quantity } }
-            });
-
             await tx.stockLog.create({
               data: {
                 variantId: item.variantId,
-                change: item.quantity,
-                reason: `Restock Otomatis - Xendit ${status} (Inv: ${currentOrder.invoice})`
+                change: 0, // Stok sudah dikurangi saat checkout (SALE), di sini hanya audit
+                reason: `SALE_VERIFIED: Pembayaran Berhasil (Inv: ${currentOrder.invoice})`
               }
             });
           }
@@ -111,12 +145,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`[XENDIT] Success processing Order: ${currentOrder.invoice} to ${newStatus}`);
+    console.log(`[XENDIT] Webhook Success: ${currentOrder.invoice} -> ${newStatus}`);
     return res.status(200).json({ status: 'OK' });
 
   } catch (error: any) {
-    console.error("[XENDIT_WEBHOOK_ERROR]:", error.message);
-    // Tetap kirim 200 agar Xendit tidak terus menerus kirim ulang jika errornya dari server kita
-    return res.status(200).json({ status: 'Error', message: error.message });
+    console.error("[XENDIT_WEBHOOK_CRITICAL]:", error.message);
+    // Kirim 200 agar Xendit tidak terus menerus retry jika error berasal dari logic kita
+    return res.status(200).json({ status: 'Error Handled', message: error.message });
   }
 }
