@@ -5,9 +5,17 @@ interface ActionButtonProps {
   trx: any;
   handlePayment: (e: React.MouseEvent, trx: any) => void;
   onOpenTracking: (trx: any) => void;
+  onCancel: (trx: any) => void;
+  onComplain: (trx: any) => void;
 }
 
-export const OrderActionButton = ({ trx, handlePayment, onOpenTracking }: ActionButtonProps) => {
+export const OrderActionButton = ({ 
+  trx, 
+  handlePayment, 
+  onOpenTracking, 
+  onCancel, 
+  onComplain 
+}: ActionButtonProps) => {
   const router = useRouter();
 
   const getButtons = () => {
@@ -16,41 +24,70 @@ export const OrderActionButton = ({ trx, handlePayment, onOpenTracking }: Action
     switch (trx.status) {
       case "PENDING":
         buttons.push({
+          label: "Batal",
+          className: "text-zinc-400 hover:text-red-500 hover:border-red-500",
+          onClick: (e: any) => {
+            e.preventDefault(); e.stopPropagation();
+            onCancel(trx);
+          },
+        });
+        buttons.push({
           label: "Bayar Sekarang",
           className: "bg-zinc-800 text-white hover:brightness-95 shadow-sm",
-          onClick: (e: any) => handlePayment(e, trx),
+          onClick: (e: any) => {
+            e.stopPropagation();
+            handlePayment(e, trx);
+          },
         });
         break;
 
       case "PAID":
-      case "SETTLEMENT":
-        // Tombol Detail Transaksi (Ke Invoice)
+        // BOLEH BATAL JIKA BARU PAID (BELUM SETTLEMENT/PROCESSING)
         buttons.push({
-          label: "Lihat Detail Transaksi",
-          className: "bg-zinc-950 border border-gray-200 text-gray-600 hover:bg-gray-50",
+          label: "Batalkan Pesanan",
+          className: "text-zinc-400 hover:text-red-500 hover:border-red-500",
           onClick: (e: any) => {
-            e.preventDefault();
-            router.push(`/user/orders/${trx.invoice}`);
+            e.preventDefault(); e.stopPropagation();
+            onCancel(trx);
+          },
+        });
+        buttons.push({
+          label: "Lihat Invoice",
+          className: "text-white hover:bg-zinc-50",
+          onClick: (e: any) => {
+            e.preventDefault(); e.stopPropagation();
+            router.push(`/invoice/${trx.invoice}`);
+          },
+        });
+        break;
+
+      case "SETTLEMENT":
+      case "PROCESSING":
+        buttons.push({
+          label: "Lihat Invoice",
+          className: "text-white hover:bg-zinc-50",
+          onClick: (e: any) => {
+            e.preventDefault(); e.stopPropagation();
+            router.push(`/invoice/${trx.invoice}`);
           },
         });
         break;
 
       case "SHIPPED":
-        // Tombol Detail
+        // TAMBAHKAN KOMPLAIN SAAT DI JALAN
         buttons.push({
-          label: "Detail",
-          className: "bg-zinc-950 border border-gray-200 text-gray-600 hover:bg-gray-50",
+          label: "Komplain",
+          className: "border border-orange-200 text-orange-500 hover:bg-orange-50",
           onClick: (e: any) => {
-            e.preventDefault();
-            router.push(`/user/orders/${trx.invoice}`);
+            e.preventDefault(); e.stopPropagation();
+            onComplain(trx);
           },
         });
-        // Tombol Lacak Pesanan (Buka Modal)
         buttons.push({
           label: "Lacak Pesanan",
-          className: "bg-zinc-950 border border-[#ee4d2d] text-[#ee4d2d] hover:bg-orange-50",
+          className: "text-white hover:bg-black",
           onClick: (e: any) => {
-            e.preventDefault();
+            e.preventDefault(); e.stopPropagation();
             onOpenTracking(trx);
           },
         });
@@ -58,21 +95,30 @@ export const OrderActionButton = ({ trx, handlePayment, onOpenTracking }: Action
 
       case "COMPLETED":
         buttons.push({
-          label: "Beli Lagi",
-          className: "border border-gray-300 text-gray-700 hover:bg-gray-50",
+          label: "Komplain",
+          className: "border border-orange-200 text-orange-500 hover:bg-orange-50",
           onClick: (e: any) => {
-            e.preventDefault();
+            e.preventDefault(); e.stopPropagation();
+            onComplain(trx);
+          },
+        });
+        buttons.push({
+          label: "Beli Lagi",
+          className: "text-white hover:bg-black",
+          onClick: (e: any) => {
+            e.preventDefault(); e.stopPropagation();
             router.push(`/our-products`);
           },
         });
         break;
 
       case "EXPIRED":
+      case "CANCELLED":
         buttons.push({
-          label: "Checkout Ulang",
-          className: "bg-red-600 text-white hover:brightness-95",
+          label: "Beli Lagi",
+          className: "text-zinc-400 hover:text-zinc-900",
           onClick: (e: any) => {
-            e.preventDefault();
+            e.preventDefault(); e.stopPropagation();
             router.push(`/our-products`);
           },
         });
@@ -86,13 +132,12 @@ export const OrderActionButton = ({ trx, handlePayment, onOpenTracking }: Action
   if (buttons.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-2 justify-end">
       {buttons.map((btn, index) => (
         <Button
           key={index}
           onClick={btn.onClick}
-          disabled={btn.disabled}
-          className={`px-5 py-2 rounded-full text-[12px] font-normal transition-all ${btn.className}`}
+          className={`bg-zinc-900 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all ${btn.className}`}
         >
           {btn.label}
         </Button>

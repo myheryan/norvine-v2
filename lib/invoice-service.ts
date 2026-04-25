@@ -1,4 +1,4 @@
-import { sendMail } from "./mail";
+import { sendEmail } from "./mail-service";
 
 /**
  * Fungsi khusus untuk mengirim Invoice Pesanan (Menunggu Pembayaran)
@@ -24,7 +24,7 @@ export const sendInvoiceEmail = async (to: string, order: any) => {
           Pesanan Anda telah kami terima dan sedang menunggu pembayaran. Silakan selesaikan pembayaran sebelum batas waktu berakhir.
         </p>
 
-        <div style="margin: 30px 0; border: 1px solid #26aa99; padding: 20px; background-color: #f6fcfb;">
+        <div style="margin: 30px 0; border: 1px solid #26aa99; padding: 20px; background-color: #f6fcfb; border-radius: 8px;">
           <p style="margin: 0; font-size: 10px; color: #26aa99; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Instruksi Pembayaran</p>
           <p style="margin: 10px 0 5px; font-size: 16px; font-weight: bold; color: #000;">
             ${order.bankName?.toUpperCase()} ${order.vaNumber ? `- ${order.vaNumber}` : ''}
@@ -32,7 +32,7 @@ export const sendInvoiceEmail = async (to: string, order: any) => {
           
           ${order.qrUrl ? `
             <div style="margin: 15px 0;">
-              <img src="${order.qrUrl}" alt="QRIS Code" style="width: 150px; height: 150px; border: 1px solid #eee;" />
+              <img src="${order.qrUrl}" alt="QRIS Code" style="width: 150px; height: 150px; border: 1px solid #eee; border-radius: 4px;" />
               <p style="font-size: 11px; color: #888; margin-top: 5px;">Scan QRIS di atas melalui aplikasi bank atau e-wallet Anda.</p>
             </div>
           ` : ''}
@@ -77,7 +77,7 @@ export const sendInvoiceEmail = async (to: string, order: any) => {
           </table>
         </div>
 
-        <div style="margin-top: 40px; padding: 20px; background-color: #fafafa; border-radius: 4px; font-size: 11px; color: #777;">
+        <div style="margin-top: 40px; padding: 20px; background-color: #fafafa; border-radius: 8px; font-size: 11px; color: #777;">
           <p style="margin: 0 0 5px; font-weight: bold; color: #333; text-transform: uppercase;">Alamat Pengiriman:</p>
           <p style="margin: 0; line-height: 1.5;">${order.shippingAddress}</p>
         </div>
@@ -89,7 +89,7 @@ export const sendInvoiceEmail = async (to: string, order: any) => {
     </div>
   `;
 
-  return await sendMail({
+  return await sendEmail({
     to,
     subject: `[Menunggu Pembayaran] Invoice #${order.invoice} - Norvine Official`,
     html: htmlContent

@@ -1,10 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { coreApi } from '@/lib/midtrans';
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from '@/lib/auth';
 import { NORVINE_CONFIG } from '@/types/norvine-default';
-import { sendInvoiceEmail } from '@/lib/email-template';
+import { sendInvoiceEmail } from '@/lib/invoice-service';
+import { formatPhoneNumber } from '@/lib/utils';
 
 const PLATFORM_SERVICE_FEE = NORVINE_CONFIG.SERVICE_FEE;
 
@@ -13,37 +13,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const session = await getServerSession(req, res, authOptions);
-    if (!session?.user) return res.status(401).json({ error: "Silakan login." });
+    if (!session?.user) return res.status(401).json({ error: "Silakan login ulang." });
 
     const { 
-      orderId, paymentMethod, shippingService, 
-      useInsurance, items, district, city, promoCode, address, recipientName, 
-      recipientPhone, dimensions, notes,
-      shippingDetails 
+      orderId, items, promoCode, recipientName, recipientPhone, 
+      notes, shippingDetails, addressSnapshot, useInsurance 
     } = req.body;
 
     const userId = (session.user as any).id;
-    const shippingCost = shippingDetails?.cost || 0; // <--- DEFINISIKAN VARIABLE INI
+    const shippingCost = Math.round(shippingDetails?.tariff || 0);
 
-        // Contoh logic pengecekan di API /api/charge
+    // 1. DOUBLE ORDER PROTECTION
     const pendingOrder = await prisma.transaction.findFirst({
-      where: {
-        userId: userId,
-        status: "PENDING",
-        paymentExpiry: {
-          gt: new Date() // Masih dalam masa berlaku pembayaran
-        }
-      },
+      where: { userId, status: "PENDING", paymentExpiry: { gt: new Date() } },
       select: { invoice: true }
     });
-
-    if (pendingOrder) {
-      throw new Error(`Anda masih memiliki pesanan pending #${pendingOrder.invoice}. Selesaikan pembayaran sebelum membuat pesanan baru.`);
-    }
+    if (pendingOrder) throw new Error(`Selesaikan pembayaran pesanan #${pendingOrder.invoice} terlebih dahulu.`);
 
     const result = await prisma.$transaction(async (tx) => {
       
-      // A. Validasi Stok & Harga Produk
+      // 2. VALIDASI PRODUK & AVAILABILITY GUARD
       const variantIds = items.map((i: any) => i.variantId);
       const dbVariants = await tx.productVariant.findMany({
         where: { id: { in: variantIds } },
@@ -53,142 +42,207 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       let serverSubtotal = 0;
       const validatedItems = items.map((item: any) => {
         const dbV = dbVariants.find(v => v.id === item.variantId);
-        if (!dbV) throw new Error(`Produk tidak ditemukan.`);
-        if (dbV.stock < item.quantity) throw new Error(`Stok ${dbV.product.name} habis.`);
         
-        serverSubtotal += dbV.price * item.quantity;
+        if (!dbV) throw new Error(`Produk tidak ditemukan.`);
+        // Tambahan: Guard untuk status produk
+        if (!dbV.product.isAvailable) throw new Error(`Produk ${dbV.product.name} sedang tidak tersedia.`);
+        if (dbV.product.isDisplayOnly) throw new Error(`${dbV.product.name} hanya untuk pajangan.`);
+        if (dbV.stock < item.quantity) throw new Error(`Stok ${dbV.product.name} tidak mencukupi.`);
+        
+        const itemPrice = Math.round(dbV.price);
+        serverSubtotal += itemPrice * item.quantity;
+
         return {
           variantId: dbV.id,
           productId: dbV.productId,
           name: `${dbV.product.name} - ${dbV.name}`.substring(0, 50),
-          price: dbV.price,
-          quantity: item.quantity
+          price: itemPrice,
+          quantity: item.quantity,
+          weight: dbV.weight || 0
         };
       });
 
-      // B. Validasi Promo (Tetap sama dengan logic Anda)
+      // 3. LOGIKA PROMO & DISCOUNT
       let serverDiscount = 0;
       let promoId: number | null = null;
       if (promoCode) {
-        const now = new Date();
         const promo = await tx.promo.findUnique({ where: { code: String(promoCode).toUpperCase() } });
         if (promo && promo.status === 'ACTIVE' && serverSubtotal >= (promo.minOrder || 0)) {
+          // Cek kuota promo
+          if (promo.limit > 0 && promo.used >= promo.limit) throw new Error("Kuota promo sudah habis.");
+          
           promoId = promo.id;
           serverDiscount = promo.type === 'PERCENT' 
             ? Math.min(Math.floor((serverSubtotal * promo.value) / 100), promo.maxDiscount || Infinity)
             : promo.value;
+          
           await tx.promo.update({ where: { id: promo.id }, data: { used: { increment: 1 } } });
         }
       }
 
-      // C. Kalkulasi Final
+      // 4. KALKULASI FINAL
       const finalSubtotal = serverSubtotal - serverDiscount;
       const insuranceCost = useInsurance ? Math.round(finalSubtotal * NORVINE_CONFIG.INSURANCE_RATE) : 0;
-      const finalAmount = finalSubtotal + shippingCost + insuranceCost + PLATFORM_SERVICE_FEE;
+      const totalToCharge = Math.round(finalSubtotal + shippingCost + PLATFORM_SERVICE_FEE + insuranceCost);
+      
+      const expiryDate = new Date();
+      expiryDate.setMinutes(expiryDate.getMinutes() + 60);
 
-      // D. Midtrans Charge (Tetap sama)
-      const midtransParam: any = {
-        payment_type: paymentMethod === "qris" ? "qris" : "bank_transfer",
-        transaction_details: { order_id: orderId, gross_amount: Math.round(finalAmount) },
-        item_details: [
-          ...validatedItems.map(i => ({ id: i.variantId, price: i.price, quantity: i.quantity, name: i.name })),
-          { id: 'SHIPPING', name: `Ongkir ${shippingService}`, price: shippingCost, quantity: 1 },
-          { id: 'FEE_SERVICE', name: 'Biaya Layanan', price: PLATFORM_SERVICE_FEE, quantity: 1 }
-        ],
-        customer_details: {
-          email: session.user?.email,
-          first_name: recipientName,
-          phone: recipientPhone,
-          shipping_address: { address, phone: recipientPhone, first_name: recipientName }
-        }
-      };
-      if (insuranceCost > 0) midtransParam.item_details.push({ id: 'INSURANCE', name: 'Asuransi', price: insuranceCost, quantity: 1 });
-      if (serverDiscount > 0) midtransParam.item_details.push({ id: 'PROMO', name: 'Promo', price: -serverDiscount, quantity: 1 });
-      if (paymentMethod !== "qris") midtransParam.bank_transfer = { bank: paymentMethod.replace('_va', '') };
+      // 5. CONSTRUCT BASKET UNTUK XENDIT (Sesuai Spec Baru)
+      const basket: any[] = validatedItems.map(i => ({
+        reference_id: i.variantId,
+        name: i.name,
+        currency: 'IDR',
+        price: i.price,
+        quantity: i.quantity,
+        type: 'PRODUCT'
+      }));
 
-      const chargeResponse = await coreApi.charge(midtransParam);
-      const rawExpiry = chargeResponse.expiry_time; 
-
-      for (const item of validatedItems) {
-        await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
+      if (shippingCost > 0) {
+        basket.push({ reference_id: 'SHIPPING', name: 'Ongkos Kirim', currency: 'IDR', price: shippingCost, quantity: 1, type: 'SERVICE' });
+      }
+      if (PLATFORM_SERVICE_FEE > 0) {
+        basket.push({ reference_id: 'SERVICE_FEE', name: 'Biaya Layanan', currency: 'IDR', price: PLATFORM_SERVICE_FEE, quantity: 1, type: 'SERVICE' });
+      }
+      if (insuranceCost > 0) {
+        basket.push({ reference_id: 'INSURANCE', name: 'Asuransi Pengiriman', currency: 'IDR', price: insuranceCost, quantity: 1, type: 'SERVICE' });
+      }
+      if (serverDiscount > 0) {
+        basket.push({ reference_id: 'PROMO_DISCOUNT', name: 'Potongan Promo', currency: 'IDR', price: -serverDiscount, quantity: 1, type: 'PRODUCT' });
       }
 
+      // 6. HIT XENDIT DENGAN METADATA CASTING
+      const encodedKey = Buffer.from(process.env.XENDIT_SECRET_KEY).toString('base64');
 
+      const xenditRes = await fetch('https://api.xendit.co/qr_codes', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${encodedKey}`,
+          'Content-Type': 'application/json',
+          'api-version' : '2022-07-31'
+
+        },
+        body: JSON.stringify({
+          reference_id: String(orderId), // Required at root
+          external_id: String(orderId),
+          type: 'DYNAMIC',
+          callback_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/webhooks/xendit`,
+          currency: 'IDR',
+          amount: totalToCharge,
+          expires_at: expiryDate.toISOString(),
+          basket: basket, // Integrated Basket
+          metadata: {
+            invoice: String(orderId),
+            user_id: String(userId),
+            customer: String(recipientName),
+            courier: String(shippingDetails.courierService),
+            source: "NORVINE_WEB_V2_PRO"
+          },
+          customer: {
+            reference_id: String(userId),
+            given_names: recipientName.substring(0, 255),
+            email: session.user?.email || "customer@norvine.co.id",
+            mobile_number: formatPhoneNumber(recipientPhone)
+          }
+          
+        }),
+      });
+
+      const chargeRes = await xenditRes.json();
+      if (!xenditRes.ok) throw new Error(chargeRes.message || "Gagal membuat QRIS Xendit");
+
+      // 7. STOCK LOGGING & UPDATES
+      for (const item of validatedItems) {
+        await tx.productVariant.update({ where: { id: item.variantId }, data: { stock: { decrement: item.quantity } } });
+        // Audit Trail: Catat di StockLog
+        await tx.stockLog.create({
+          data: { variantId: item.variantId, change: -item.quantity, reason: `SALE: ${orderId}` }
+        });
+      }
+
+      // 8. CREATE TRANSACTION WITH AUDIT TRAIL
       const transaction = await tx.transaction.create({
         data: {
           invoice: orderId,
-          notes,
+          userId,
           status: "PENDING",
+          notes: notes || "",
           subtotal: serverSubtotal,
           discount: serverDiscount,
           shippingCost,
           insuranceCost,
           serviceFee: PLATFORM_SERVICE_FEE,
-          totalAmount: Math.round(finalAmount),
-          shippingAddress: address,
-          recipientName,
-          recipientPhone,
-          paymentMethod,
-          userId,
-          promoId,
-          midtransOrderId: chargeResponse.transaction_id,
-          vaNumber: chargeResponse.va_numbers?.[0]?.va_number || null,
-          bankName: chargeResponse.va_numbers?.[0]?.bank || (paymentMethod === 'qris' ? 'QRIS' : paymentMethod),
-          qrUrl: chargeResponse.actions?.find((a: any) => a.name === "generate-qr-code")?.url || null,
-          paymentExpiry: rawExpiry ? new Date(rawExpiry.replace(" ", "T") + "+07:00") : null,
-          rawPaymentRes: chargeResponse as any, 
-          shipment: {
+          totalAmount: totalToCharge,
+          paymentMethod: 'qris',
+          bankName: 'QRIS',
+          qrUrl: chargeRes.qr_string,
+          midtransOrderId: chargeRes.id, 
+          paymentExpiry: expiryDate,
+          rawPaymentRes: chargeRes, // Simpan respon mentah Xendit
+          
+          shippingAddress: {
             create: {
-              courierCode: shippingDetails.courier || "LION",
-              courierService: shippingDetails.service || shippingService,
-              destination: `${district}, ${city}`,
-              originCode: shippingDetails.originCode,
-              destinationCode: shippingDetails.destinationCode,
-              ursaCode: shippingDetails.ursaCode,
-              isInsurance: insuranceCost > 0, 
-              insuranceAmount: insuranceCost || 0,
-              weight: shippingDetails.totalWeight,              
-              apiPayload: {
-                dimensions: dimensions || { length: 10, width: 10, height: 10 },
-              }
+              recipientName,
+              recipientPhone,
+              fullAddress: addressSnapshot.fullAddress,
+              province: addressSnapshot.province,
+              city: addressSnapshot.city,
+              district: addressSnapshot.district,
+              postalCode: addressSnapshot.postalCode,
             }
           },
+
+          shipment: {
+            create: {
+              courierCode: shippingDetails.courierCode,
+              courierService: shippingDetails.courierService,
+              destination: `${addressSnapshot.district}, ${addressSnapshot.city}`,
+              originCode: shippingDetails.originCode,
+              destinationCode: shippingDetails.destinationCode,
+              weight: Number(shippingDetails.weight),
+              isInsurance: useInsurance,
+              insuranceAmount: insuranceCost,
+              apiPayload: shippingDetails.dimensions || {}
+            }
+          },
+
           items: {
             create: validatedItems.map(item => ({
               productId: item.productId,
               variantId: item.variantId,
               quantity: item.quantity,
               priceAtBuy: item.price,
+              weightAtBuy: item.weight
             })),
           },
         },
       });
 
-      // G. Buat History
       await tx.orderHistory.create({
-        data: {
-          transactionId: transaction.id,
-          status: "PENDING",
-          notes: "Menunggu pembayaran."
-        }
+        data: { transactionId: transaction.id, status: "PENDING", notes: "Checkout berhasil, menunggu pembayaran QRIS." }
       });
 
-      return { transaction, validatedItems };
-    }, {
-      timeout: 15000 
-    });
+      return { transaction, chargeRes, validatedItems };
+    }, { timeout: 35000 }); // Ditambah dikit buat amannya Xendit
 
     const { transaction, validatedItems } = result;
     
+    // 9. ASYNC NOTIFICATION
     sendInvoiceEmail(session.user?.email as string, {
       ...transaction,
-      items: validatedItems, // Kita pakai validatedItems karena sudah ada field 'name' produk
-    }).catch(err => console.error("Gagal kirim email invoice:", err));
+      items: validatedItems, 
+    }).catch(err => console.error("Email Error:", err));
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      invoice: transaction.invoice,
+      qr_string: result.chargeRes.qr_string,
+      qrUrl: result.transaction.midtransOrderId,
+      amount: transaction.totalAmount,
+      expiry_time: transaction.paymentExpiry
+    });
 
   } catch (error: any) {
-    console.error("CHARGE ERROR:", error.message);
-    return res.status(400).json({ error: error.message });
+    console.error("CHARGE_CRITICAL_ERROR:", error);
+    return res.status(400).json({ error: error.message || "Gagal memproses transaksi" });
   }
 }

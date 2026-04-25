@@ -6,7 +6,7 @@ import Image from "next/image"
 import { useMutation } from '@apollo/client/react'
 import { useInView } from 'react-intersection-observer'
 
-import { CHECK_SERIAL, CheckSerialResponse, CheckSerialVariable } from '@/lib/graphql/query'
+import { CHECK_SERIAL, CheckSerialResponse, CheckSerialVariable } from '@/lib/graphql/queries'
 import productSecurityCode from '@/public/verify/product-security-code.webp'
 import TextInput from '@/components/verify/TextInput'
 import VerifyButton from '@/components/verify/VerifyButton'

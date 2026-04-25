@@ -266,6 +266,7 @@ export default function AddressManager({ isOpen, onClose, onSuccess, initialData
               placeholder="Nomor Rumah, Nama Jalan, RT/RW, Patokan"
               className="w-full min-h-[80px] p-3 border border-zinc-200 text-sm outline-none focus:border-black resize-none" 
               value={formData.fullAddress} 
+              maxLength={100}
               onChange={e => setFormData({...formData, fullAddress: e.target.value})} 
             />
           </div>

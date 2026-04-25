@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/lib/prisma';
 import bcrypt from 'bcrypt'; // Disarankan menggunakan bcryptjs untuk kompatibilitas Next.js
-import { getServerSession } from "next-auth/next";
+import  getServerSession from "next-auth";
 import { authOptions } from "./[...nextauth]"; // Sesuaikan path ke file config NextAuth Anda
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

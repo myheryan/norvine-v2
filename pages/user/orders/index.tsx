@@ -235,31 +235,13 @@ const handleActionSubmit = async () => {
                     </div>
                     
                     <div className="flex items-center justify-end gap-2">
-                      {/* BUTTON CANCEL */}
-                      {trx.status === "PENDING" && (
-                        <button 
-                          onClick={() => { setSelectedTrx(trx); setModalType("CANCEL"); }}
-                          className="bg-black rounded-md  px-3 py-2 text-[12px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase"
-                        >
-                          Batal
-                        </button>
-                      )}
-                      
-                      {/* BUTTON COMPLAIN */}
-                      {trx.status === "COMPLETED" && (
-                        <button 
-                          onClick={() => { setSelectedTrx(trx); setModalType("COMPLAIN"); }}
-                          className="bg-black rounded-md px-3 py-2 text-[12px] font-bold text-orange-400 hover:text-orange-600 transition-colors uppercase"
-                        >
-                          Komplain
-                        </button>
-                      )}
-
-                      <OrderActionButton 
-                        trx={trx} 
-                        handlePayment={handlePayment} 
-                        onOpenTracking={handleOpenTracking} 
-                      />
+                        <OrderActionButton 
+                          trx={trx} 
+                          handlePayment={handlePayment} 
+                          onOpenTracking={handleOpenTracking}
+                          onCancel={() => { setSelectedTrx(trx); setModalType("CANCEL"); }} // Logic buka modal
+                          onComplain={() => { setSelectedTrx(trx); setModalType("COMPLAIN"); }} // Logic buka modal
+                        />
                     </div>
                   </div>
 

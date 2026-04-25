@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import prisma from '@/lib/prisma';
 import crypto from 'crypto';
-import { sendMail } from '@/lib/mail'; // Pastikan path ke fungsi nodemailer Anda benar
+import { sendEmail } from '@/lib/mail-service'; // Pastikan path ke fungsi nodemailer Anda benar
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' });
@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     `;
 
     // 6. Kirim Email
-    await sendMail({
+    await sendEmail({
       to: email,
       subject: "Atur Ulang Kata Sandi Norvine",
       html: emailHtml,

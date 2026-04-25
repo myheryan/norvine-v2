@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { getServerSession } from "next-auth/next";
+import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]";
 import prisma from "@/lib/prisma";
 import { Button } from "@/components/ui/baseInput";

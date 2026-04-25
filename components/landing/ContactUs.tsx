@@ -11,7 +11,7 @@ import {
   ContactUsResponse,
   ContactUsVariable,
   CONTACT_US,
-} from '@/lib/graphql/query'
+} from '@/lib/graphql/queries'
 import { NavbarContext } from '../context/NavbarContext'
 import { Mobile, Desktop } from '@/components/responsive'
 

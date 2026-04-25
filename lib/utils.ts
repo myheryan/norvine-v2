@@ -164,27 +164,20 @@ export const formatToIndonesianPhone = (phone: string): string => {
 
 
 export const formatPhoneNumber = (value: any) => {
-  // 1. Ambil hanya digit angka saja
   let digits = value.replace(/\D/g, '');
 
-  // 2. Jika user mencoba menghapus sampai habis, kembalikan kosong
   if (digits.length === 0) return '';
 
-  // 3. Tangani awalan: jika user ngetik "08..." ubah jadi "628..."
   if (digits.startsWith('0')) {
     digits = '62' + digits.substring(1);
   }
   
-  // Jika tidak diawali 62 (misal langsung 821), paksa tambahkan 62 di depan
   if (!digits.startsWith('62') && digits.length > 0) {
     digits = '62' + digits; // Hapus '+' di sini biar hitungan slice nggak kacau
   }
 
-  // 4. Batasi maksimal 13 digit angka (setelah angka 62)
-  // Total digit maksimal: 62 + 13 angka = 15 digits
   const slicedDigits = digits.slice(0, 15);
 
-  // 5. Proses pemformatan: +62 8xx xxxx xxxx (3 - 4 - 4)
   const countryCode = '+62';
   const rest = slicedDigits.substring(2); // Ambil angka setelah '62'
   

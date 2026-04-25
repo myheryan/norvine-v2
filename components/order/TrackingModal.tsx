@@ -84,34 +84,20 @@ export default function TrackingModal({ isOpen, onClose, waybill, invoice }: Tra
               <p className="text-[10px]  tracking-[0.2em] text-gray-400">Belum ada riwayat status</p>
             </div>
           ) : (
-            <div className="relative space-y-5">
-              {trackingData.map((step: any, idx: number) => (
-                <div key={idx} className={`relative flex items-start gap-3`}>
-                  
-                  {/* Line Vertikal */}
-                  {idx !== trackingData.length - 1 && (
-                    <div className="absolute left-[6px] top-3 w-[1px] h-[calc(100%+24px)] bg-gray-400" />
-                  )}
-                  
-                  {/* Marker - Norvine Sharp Square Style */}
-                  <div className={`relative z-10 flex items-center justify-center bg-white rounded-full`}>
-                    <div className={`w-[12px] h-[12px]  rounded-full ${idx === 0 ? 'bg-[#FF5722]' : 'bg-gray-200'}`} />
-                  </div>
-
-                  <div className="flex flex-col md:flex-row-reverse -mt-3 md:gap-3">
-                    <p className="text-[11px] text-gray-500 font-normal leading-relaxed mt-1.5">
-                      {step.notes || `Pesanan diperbarui ke status ${step.status}`}
-                    </p>
-
-                    <p className="text-[9px] text-gray-400 mt-2 font-normal ">
-                      {new Date(step.createdAt || step.time).toLocaleString('id-ID', { 
-                        dateStyle: 'medium', 
-                        timeStyle: 'short' 
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ))}
+           <div className="space-y-2">
+               <div className="relative space-y-2 before:absolute before:left-[6px] before:top-2 before:bottom-2 before:w-[1px] before:bg-gray-100">
+                  {trackingData?.map((hist: any, index: number) => (
+                    <div key={hist.id} className={`relative pl-2`}>
+                      <div className={`absolute left-0 top-1 w-3 h-3 rounded-full flex items-center justify-center z-10 ${index === 0 ? 'bg-[#26aa99] shadow-md' : 'bg-gray-200'}`}>
+                        {index === 0 && <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />}
+                      </div>
+                      <div className="flex flex-col md:flex-row-reverse justify-end md:gap-5 pl-3">
+                        <p className="text-[11px] text-gray-700 mt-0.5 leading-snug">{hist.notes || `Status pesanan berubah menjadi ${hist.status}`}</p>
+                        <p className="text-[10px] text-gray-600 mt-1">{new Date(hist.createdAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                      </div>
+                    </div>
+                  ))}
+               </div>
             </div>
           )}
         </div>

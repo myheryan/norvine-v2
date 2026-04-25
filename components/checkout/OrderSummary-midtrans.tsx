@@ -58,61 +58,62 @@ export default function OrderSummary({
     checkPending();
   }, []);
 
-const gateways = [
-  {
-    title: "Pembayaran Instan",
-    methods: [
-      { 
-        id: 'qris', 
-        label: 'QRIS (OVO, Dana, ShopeePay, LinkAja, & Mobile Banking)', 
-        icon: 'QRIS' 
-      },
-    ]
-  }
-];
+  const gateways = [
+    {
+      title: 'Transfer Bank (Midtrans)',
+      methods: [
+        { id: 'bca_va', label: 'BCA Virtual Account', icon: 'BCA' },
+        { id: 'qris', label: 'QRIS / Midtrans', icon: 'QRIS' },
+      ]
+    }
+  ];
 
   return (
     <div className="w-full lg:w-[400px] shrink-0 space-y-4 lg:sticky lg:top-8">
       
-      {/* METODE PEMBAYARAN - KHUSUS QRIS */}
+      {/* 1. METODE PEMBAYARAN - Mengikuti Header OrderItems */}
       <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
         <div className="bg-zinc-50/50 p-4 border-b border-zinc-100">
-          <h3 className="text-sm font-semibold text-zinc-600 flex items-center gap-2">
+          <h3 className="text-sm font-black text-zinc-600 flex items-center gap-2">
             <FiCreditCard size={16} /> Metode Pembayaran
           </h3>
         </div>
         
-        <div className="p-4">
+        <div className="p-4 space-y-5">
           {gateways.map((group, idx) => (
             <div key={idx} className="space-y-3">
-              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">
-                {group.title}
-              </p>
+              <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-semibold">{group.title}</p>
               <div className="space-y-3">
                 {group.methods.map((method) => (
-                  <div 
-                    key={method.id} 
-                    className="flex items-center justify-between p-3 border border-zinc-900 bg-zinc-50/50"
-                  >
+                  <label key={method.id} className="flex items-center justify-between cursor-pointer group">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-7 bg-zinc-900 text-white flex items-center justify-center text-[8px] font-semibold">
+                      <div className={cn(
+                        "w-12 h-7 border flex items-center justify-center text-[9px] italic transition-all",
+                        options.payment === method.id ? "bg-zinc-900 text-white border-zinc-900" : "bg-zinc-50 border-zinc-100 text-zinc-800"
+                      )}>
                         {method.icon}
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-zinc-900">
-                          {method.label}
-                        </span>
-                        <span className="text-[10px] text-zinc-500">
-                          Scan otomatis melalui aplikasi pembayaran Anda
-                        </span>
-                      </div>
+                      <span className={cn(
+                        "text-sm transition-colors",
+                        options.payment === method.id ? "font-bold text-zinc-900" : "text-zinc-600 group-hover:text-zinc-900"
+                      )}>
+                        {method.label}
+                      </span>
                     </div>
-                    
-                    {/* Indikator Terpilih */}
-                    <div className="w-4 h-4 rounded-full bg-zinc-900 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                    <div className={cn(
+                        "w-4 h-4 rounded-full border flex items-center justify-center transition-all",
+                        options.payment === method.id ? "border-zinc-900 bg-zinc-900" : "border-zinc-200"
+                    )}>
+                      <input 
+                        type="radio" 
+                        name="payment_method" 
+                        checked={options.payment === method.id} 
+                        onChange={() => setOptions({ ...options, payment: method.id })}
+                        className="hidden"
+                      />
+                      {options.payment === method.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                     </div>
-                  </div>
+                  </label>
                 ))}
               </div>
             </div>
@@ -123,7 +124,7 @@ const gateways = [
       {/* 2. RINGKASAN TRANSAKSI */}
       <div className="bg-white border border-zinc-100 shadow-sm overflow-hidden">
         <div className="bg-zinc-50/50 p-4 border-b border-zinc-100">
-           <h3 className="text-sm font-semibold text-zinc-600 flex items-center gap-2">Ringkasan Transaksi</h3>
+           <h3 className="text-sm font-black text-zinc-600 flex items-center gap-2">Ringkasan Transaksi</h3>
         </div>
 
         {/* Promo Section - Mirroring Catatan Style */}
@@ -139,7 +140,7 @@ const gateways = [
             <div className="flex items-center gap-3">
               <FiTagIcon size={18} />
               <div className="text-left">
-                <p className="text-xs font-semibold text-zinc-900">
+                <p className="text-xs font-bold text-zinc-900">
                   {discount > 0 ? 'Promo Berhasil Dipasang' : 'Punya Kode Promo?'}
                 </p>
                 <p className="text-[10px] text-zinc-500">
@@ -154,7 +155,7 @@ const gateways = [
         <div className="p-4 space-y-3">
           <div className="flex justify-between text-sm">
             <span className="text-zinc-600">Total Harga Produk</span>
-            <span className="font-semibold text-zinc-900">{formatRp(subtotal)}</span>
+            <span className="font-bold text-zinc-900">{formatRp(subtotal)}</span>
           </div>
 
           <div className="flex justify-between text-sm items-center">
@@ -164,7 +165,7 @@ const gateways = [
             ) : !selectedRate ? (
               <span className="text-xs text-zinc-300 italic">Menunggu alamat...</span>
             ) : (
-              <span className="font-semibold text-zinc-900">{formatRp(shippingCost)}</span>
+              <span className="font-bold text-zinc-900">{formatRp(shippingCost)}</span>
             )}
           </div>
 
@@ -172,7 +173,7 @@ const gateways = [
             <button 
               type="button"
               onClick={() => setShowDetails(!showDetails)}
-              className="flex items-center gap-1 text-xs font-semibold text-zinc-400 hover:text-zinc-900 transition-colors"
+              className="flex items-center gap-1 text-xs font-bold text-zinc-400 hover:text-zinc-900 transition-colors"
             >
               <span>Rincian Biaya</span>
               {showDetails ? <FiChevronUp /> : <FiChevronDown />}
@@ -191,7 +192,7 @@ const gateways = [
                   </div>
                 )}
                 {discount > 0 && (
-                  <div className="flex justify-between text-xs text-emerald-600 font-semibold">
+                  <div className="flex justify-between text-xs text-emerald-600 font-bold">
                     <span>Potongan Promo</span>
                     <span>-{formatRp(discount)}</span>
                   </div>
@@ -203,11 +204,11 @@ const gateways = [
           {/* TOTAL & ACTION */}
           <div className="mt-6 pt-4 border-t border-zinc-100">
             <div className="flex justify-between items-end mb-6">
-              <span className="text-xs font-semibold text-zinc-600 uppercase">Total Tagihan</span>
+              <span className="text-xs font-black text-zinc-600 uppercase">Total Tagihan</span>
               {isCheckingShipping ? (
                 <Shimmer className="h-8 w-32" />
               ) : (
-                <span className="text-xl font-semibold text-zinc-900 tracking-tight">
+                <span className="text-xl font-black text-zinc-900 tracking-tight">
                   {formatRp(total)}
                 </span>
               )}
@@ -239,7 +240,7 @@ const gateways = [
               type="submit"
               disabled={isCheckoutDisabled}
               className={cn(
-                "w-full py-4 text-xs font-semibold uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all",
+                "w-full py-4 text-xs font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all",
                 (isCheckingShipping || !selectedRate || !!hasPendingOrder) 
                   ? "bg-zinc-100 text-zinc-300 cursor-not-allowed" 
                   : "bg-zinc-900 text-white hover:bg-black active:scale-[0.98]"

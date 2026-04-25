@@ -20,7 +20,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           orderBy: {
             createdAt: 'desc' 
           },
-          take: 3 // 👈 Hanya ambil 3 riwayat terbaru sesuai permintaan Bapak
         }
       }
     });

@@ -38,15 +38,12 @@ export default function OrderItems({
   // Variabel pengecekan layanan kurir
   const isShippingAvailable = shippingData.services.length > 0;
   const selectedService = shippingData.services.find(s => s.product === options.shipping);
-  console.log(shippingData
-
-  )
   
   return (
     <div className="bg-white border border-zinc-100 shadow-sm overflow-visible relative z-20">
       
       {/* 1. HEADER TABEL (DESKTOP) */}
-      <div className="hidden md:grid grid-cols-12 gap-2 bg-zinc-50/50 p-4 border-b border-zinc-100 text-sm font-black text-zinc-600 ">
+      <div className="hidden md:grid grid-cols-12 gap-2 bg-zinc-50/50 p-3 border-b border-zinc-100 text-sm font-semibold text-zinc-600 ">
         <div className="col-span-6">Produk Dipesan</div>
         <div className="col-span-2 text-center">Harga</div>
         <div className="col-span-2 text-center">Jumlah</div>
@@ -71,13 +68,13 @@ export default function OrderItems({
                 <p className="text-xs text-zinc-600 mt-1">Varian: {item.variant}</p>
                 <div className="md:hidden mt-2 flex justify-between items-end">
                    <p className="text-sm text-zinc-600">{formatRp(item.price)} <span className='text-zinc-900 ml-1'> x{item.quantity}</span></p>
-                   <p className="text-sm font-black text-zinc-900">{formatRp(item.price * item.quantity)}</p>
+                   <p className="text-sm font-semibold text-zinc-900">{formatRp(item.price * item.quantity)}</p>
                 </div>
               </div>
             </div>
             <div className="hidden md:block col-span-2 text-center text-xs text-zinc-600">{formatRp(item.price)}</div>
             <div className="hidden md:block col-span-2 text-center text-sm font-bold text-zinc-900">{item.quantity}</div>
-            <div className="hidden md:block col-span-2 text-right text-sm font-black text-zinc-900">{formatRp(item.price * item.quantity)}</div>
+            <div className="hidden md:block col-span-2 text-right text-sm font-semibold text-zinc-900">{formatRp(item.price * item.quantity)}</div>
           </div>
         ))}
       </div>
@@ -113,7 +110,6 @@ export default function OrderItems({
             </div>
 
             <div className="relative">
-
               <button 
                 type="button"
                 disabled={!isShippingAvailable || isCheckingShipping}
@@ -140,15 +136,16 @@ export default function OrderItems({
                 )}
                 <FiChevronDown className={`text-zinc-600 transition-transform ${isShippingOpen ? 'rotate-180' : ''}`} size={16} />
               </button>
-                              {/* PESAN ERROR JIKA LAYANAN 0 */}
-                {/* {shippingData.services.length === 0 && !isCheckingShipping && (
-                  <div className="mb-2 p-3 flex gap-2 text-red-500">
-                    <FiAlertCircle size={14} />
-                    <span className="text-[12px]  tracking-tight">
-                      * {shippingErrorMessage}
-                    </span>
-                  </div>
-                )} */}
+
+              {/* TAMPILAN ERROR DARI API LION PARCEL */}
+              {!isShippingAvailable && !isCheckingShipping && shippingErrorMessage && (
+                <div className="mt-2 p-3 bg-red-50 border border-red-100 flex items-start gap-2 animate-in fade-in duration-300">
+                  <FiAlertCircle className="text-red-500 mt-0.5 shrink-0" size={14} />
+                  <p className="text-[11px] text-red-600 leading-tight font-bold uppercase italic">
+                    {shippingErrorMessage}
+                  </p>
+                </div>
+              )}
 
               {isShippingOpen && isShippingAvailable && (
                 <>
@@ -200,58 +197,57 @@ export default function OrderItems({
           </div>
         </div>
 
-<div 
-  onClick={() => setUseInsurance(!useInsurance)}
-  className={cn(
-    "p-4 border transition-all flex items-center justify-between cursor-pointer select-none",
-    useInsurance 
-      ? "border-black bg-zinc-50" 
-      : "border-zinc-200 bg-white"
-  )}
->
-  <div className="flex items-center gap-4">
-    <div className={cn(
-      "transition-colors",
-      useInsurance ? "text-black" : "text-zinc-300"
-    )}>
-      <FiShield size={20} />
-    </div>
-    <div className="space-y-0.5">
-      <h4 className="text-sm font-bold text-black uppercase tracking-tight">Asuransi Pengiriman</h4>
-      <p className="text-[11px] text-zinc-500 leading-tight">
-        Proteksi penuh dari kerusakan & kehilangan barang
-      </p>
-    </div>
-  </div>
-
-  {/* Custom Checkbox Sharp Edge */}
-  <div className="flex items-center">
-    <div className={cn(
-      "w-5 h-5 border flex items-center justify-center transition-all duration-200",
-      useInsurance 
-        ? "bg-black border-black" 
-        : "bg-white border-zinc-300"
-    )}>
-      {useInsurance && (
-        <svg 
-          className="w-3.5 h-3.5 text-white" 
-          fill="none" 
-          viewBox="0 0 24 24" 
-          stroke="currentColor" 
-          strokeWidth={4}
+        <div 
+          onClick={() => setUseInsurance(!useInsurance)}
+          className={cn(
+            "p-4 transition-all flex items-center justify-between cursor-pointer select-none",
+            useInsurance 
+              ? "bg-emerald-300/10" 
+              : "border border-zinc-200 bg-white"
+          )}
         >
-          <path d="M5 13l4 4L19 7" />
-        </svg>
-      )}
-    </div>
-    <input 
-      type="checkbox" 
-      className="hidden" 
-      checked={useInsurance} 
-      onChange={() => {}} // Di handle oleh parent div onClick
-    />
-  </div>
-</div>
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "transition-colors",
+              useInsurance ? "text-black" : "text-zinc-300"
+            )}>
+              <FiShield size={20} />
+            </div>
+            <div className="space-y-0.5">
+              <h4 className="text-sm font-semibold text-emerald-600 tracking-tight">Asuransi Pengiriman</h4>
+              <p className="text-[11px] text-zinc-500 leading-tight">
+                Proteksi penuh dari kerusakan & kehilangan barang
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center">
+            <div className={cn(
+              "w-5 h-5 border flex items-center justify-center transition-all duration-200",
+              useInsurance 
+                ? "bg-black border-black" 
+                : "bg-white border-zinc-300"
+            )}>
+              {useInsurance && (
+                <svg 
+                  className="w-3.5 h-3.5 text-white" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor" 
+                  strokeWidth={4}
+                >
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+            <input 
+              type="checkbox" 
+              className="hidden" 
+              checked={useInsurance} 
+              readOnly
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

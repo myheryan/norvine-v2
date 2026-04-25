@@ -4,7 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@next-auth/prisma-adapter"; 
 import prisma from "@/lib/prisma";
 import bcrypt from "bcrypt";
-import { sendWelcomeEmail } from "@/lib/mail";
+import { sendWelcomeMail } from "@/lib/mail-service";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -105,7 +105,7 @@ export const authOptions: NextAuthOptions = {
     // 1. Dijalankan saat user pertama kali dibuat di Database (Registration)
     async createUser({ user }) {
       if (user.email) {
-        await sendWelcomeEmail(user.email, user.name || "User");
+        await sendWelcomeMail(user.email, user.name || "User");
         // Logika tambahan: Memberi role default atau kirim diskon pertama
         console.log(`[EVENT: CREATE_USER] Akun baru dibuat: ${user.email}`);
       }

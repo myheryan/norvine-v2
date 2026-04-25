@@ -152,6 +152,26 @@ model StockLog {
   variant ProductVariant @relation(fields: [variantId], references: [id])
 }
 
+
+model OrderAddress {
+  id             String      @id @default(cuid())
+  transactionId  String      @unique
+  transaction    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  // Data Snapshot
+  recipientName  String
+  recipientPhone String
+  fullAddress    String
+  province       String
+  city           String
+  district       String
+  postalCode     String
+  
+  createdAt      DateTime    @default(now())
+}
+
+
+
 // --- TRANSACTION & LOGISTICS ---
 model Transaction {
   id              String      @id @default(cuid())
@@ -169,14 +189,9 @@ model Transaction {
   serviceFee      Int         @default(0)
   totalAmount     Int         @default(0)
 
-  // Shipping Info (Snapshot)
-  shippingAddress String
-  recipientName   String?
-  recipientPhone  String?
-  waybill         String? // Tetap simpan di sini untuk akses cepat
+  shippingAddress OrderAddress?
+  waybill         String? 
 
-
-  // Payment Info
   paymentMethod   String
   midtransOrderId String?     @unique
   bankName        String?
@@ -201,7 +216,7 @@ model Transaction {
   @@index([status])
 }
 
-// MODEL BARU UNTUK SHIPPING HUB
+
 model Shipment {
   id             String      @id @default(cuid())
   transactionId  String      @unique
