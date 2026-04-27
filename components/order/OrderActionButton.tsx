@@ -1,12 +1,13 @@
-import { Button } from "@/components/ui/baseInput";
+"use client";
+
 import { useRouter } from "next/router";
 
 interface ActionButtonProps {
   trx: any;
   handlePayment: (e: React.MouseEvent, trx: any) => void;
   onOpenTracking: (trx: any) => void;
-  onCancel: (trx: any) => void;
-  onComplain: (trx: any) => void;
+  onCancel: (trx: any) => void; // Menangani Pembatalan (Tipe 1 & 2)
+  onReturn: (trx: any) => void; // Menangani Pengembalian Barang (Retur)
 }
 
 export const OrderActionButton = ({ 
@@ -14,113 +15,115 @@ export const OrderActionButton = ({
   handlePayment, 
   onOpenTracking, 
   onCancel, 
-  onComplain 
+  onReturn 
 }: ActionButtonProps) => {
   const router = useRouter();
+
+  // Deteksi adanya request di database
+  const hasCancelReq = !!trx.cancellationRequest;
+  const hasReturnReq = !!trx.refundRequest;
 
   const getButtons = () => {
     const buttons = [];
 
     switch (trx.status) {
       case "PENDING":
-        buttons.push({
-          label: "Batal",
-          className: "text-zinc-400 hover:text-red-500 hover:border-red-500",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            onCancel(trx);
-          },
+        // BELUM BAYAR: Pembatalan Tipe 1
+        buttons.push({ 
+          label: "Batalkan", 
+          className: "text-zinc-400 border-zinc-100", 
+          onClick: () => onCancel(trx) 
         });
-        buttons.push({
-          label: "Bayar Sekarang",
-          className: "bg-zinc-800 text-white hover:brightness-95 shadow-sm",
-          onClick: (e: any) => {
-            e.stopPropagation();
-            handlePayment(e, trx);
-          },
+        buttons.push({ 
+          label: "Bayar", 
+          className: "bg-[#ee4d2d] text-white border-none shadow-sm", 
+          onClick: (e: any) => handlePayment(e, trx) 
         });
         break;
 
       case "PAID":
       case "PROCESSING":
-        buttons.push({
-          label: "Batalkan Pesanan",
-          className: "text-zinc-400 hover:text-red-500 hover:border-red-500",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            onCancel(trx);
-          },
-        });
-
-        break;
       case "READY_TO_SHIP":
-        buttons.push({
-          label: "Lacak Pesanan",
-          className: "text-white hover:bg-black",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            onOpenTracking(trx);
-          },
-        });
+        // SUDAH BAYAR: Pembatalan Tipe 2 (Kembali Dana)
+        if (hasCancelReq) {
+          buttons.push({ 
+            label: "Pantau Batal", 
+            className: "bg-red-50 text-red-600 border-red-100", 
+            onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
+          });
+        } else {
+          buttons.push({ 
+            label: "Ajukan Batal", 
+            className: "text-zinc-400 border-zinc-100", 
+            onClick: () => onCancel(trx) 
+          });
+        }
+
+        if (trx.status === "READY_TO_SHIP") {
+          buttons.push({ 
+            label: "Lacak", 
+            className: "bg-zinc-900 text-white border-none", 
+            onClick: () => onOpenTracking(trx) 
+          });
+        }
         break;
+
       case "SHIPPED":
-        // TAMBAHKAN KOMPLAIN SAAT DI JALAN
-        buttons.push({
-          label: "Hubungi Admin",
-          className: "border border-orange-200 text-orange-500 hover:bg-orange-50",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            onComplain(trx);
-          },
+        // BARANG JALAN: Bisa Lacak & Bisa Retur
+        buttons.push({ 
+          label: "Lacak", 
+          className: "bg-zinc-900 text-white border-none", 
+          onClick: () => onOpenTracking(trx) 
         });
-        buttons.push({
-          label: "Lacak Pesanan",
-          className: "text-white hover:bg-black",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            onOpenTracking(trx);
-          },
-        });
+        if (hasReturnReq) {
+          buttons.push({ 
+            label: "Pantau Retur", 
+            className: "bg-orange-50 text-orange-600 border-orange-200", 
+            onClick: () => router.push(`/user/orders/refund/${trx.invoice}`) 
+          });
+        } else {
+          buttons.push({ 
+            label: "Retur Barang", 
+            className: "text-orange-500 border-orange-100", 
+            onClick: () => onReturn(trx) 
+          });
+        }
         break;
 
       case "COMPLETED":
-        buttons.push({
-          label: "Komplain",
-          className: "border border-orange-200 text-orange-500 hover:bg-orange-50",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            onComplain(trx);
-          },
-        });
-        buttons.push({
-          label: "Beli Lagi",
-          className: "text-white hover:bg-black",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            router.push(`/our-products`);
-          },
+        // SELESAI: Fokus ke Beli Lagi atau Retur jika bermasalah
+        if (hasReturnReq) {
+          buttons.push({ 
+            label: "Detail Retur", 
+            className: "bg-orange-50 text-orange-600 border-orange-200", 
+            onClick: () => router.push(`/user/orders/refund/${trx.invoice}`) 
+          });
+        } else {
+          buttons.push({ 
+            label: "Retur Barang", 
+            className: "text-orange-500 border-orange-100", 
+            onClick: () => onReturn(trx) 
+          });
+        }
+        buttons.push({ 
+          label: "Beli Lagi", 
+          className: "bg-zinc-900 text-white border-none", 
+          onClick: () => router.push(`/our-products`) 
         });
         break;
 
-      case "EXPIRED":
       case "CANCELLED":
-        buttons.push({
-          label: "Beli Lagi",
-          className: "text-zinc-400 hover:text-zinc-900",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            router.push(`/our-products`);
-          },
+      case "EXPIRED":
+        // SUDAH BATAL
+        buttons.push({ 
+          label: "Detail Batal", 
+          className: "text-zinc-500 border-zinc-200", 
+          onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
         });
-        break;
-     case "REFUNDED":
-        buttons.push({
-          label: "Ajukan Pengembalian",
-          className: "text-zinc-400 hover:text-zinc-900",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            router.push(`/return/${trx.invoice}`);
-          },
+        buttons.push({ 
+          label: "Beli Lagi", 
+          className: "bg-zinc-900 text-white border-none", 
+          onClick: () => router.push(`/our-products`) 
         });
         break;
     }
@@ -129,18 +132,26 @@ export const OrderActionButton = ({
   };
 
   const buttons = getButtons();
-  if (buttons.length === 0) return null;
 
   return (
     <div className="flex flex-wrap gap-2 justify-end">
-      {buttons.map((btn, index) => (
-        <Button
-          key={index}
-          onClick={btn.onClick}
-          className={`bg-zinc-900 px-4 py-2 rounded-full text-[11px] font-black uppercase transition-all ${btn.className}`}
+      {buttons.map((btn, idx) => (
+        <button
+          key={idx}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            btn.onClick();
+          }}
+          className={`
+            px-4 py-2 text-[10px] font-black uppercase tracking-widest 
+            border transition-all duration-200 rounded-none 
+            flex items-center justify-center min-w-[100px]
+            ${btn.className}
+          `}
         >
           {btn.label}
-        </Button>
+        </button>
       ))}
     </div>
   );

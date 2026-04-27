@@ -2,16 +2,10 @@ import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/lib/prisma";
 import { OrderStatus } from "@/generated/prisma/enums";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/pages/api/auth/[...nextauth]"; // Sesuaikan path authOptions
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions);
-
-  // DEBUG: Cek apakah ID muncul di terminal
-  console.log("SESSION DI ORDER API:", session?.user);
-
-  // Next-auth terkadang menyimpan ID di session.user.id (lowercase) 
-  // atau Anda harus memastikannya ada di callback session
   const userId = (session?.user as any)?.id;
 
   if (!userId) {
@@ -20,22 +14,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const now = new Date();
-    // Gunakan userId yang sudah dipastikan ada
-    await prisma.transaction.updateMany({
+
+    // 1. CARI PESANAN YANG SEHARUSNYA EXPIRED
+    const expiredOrders = await prisma.transaction.findMany({
       where: {
-        userId: userId, 
+        userId: userId,
         status: OrderStatus.PENDING,
         paymentExpiry: { lt: now },
       },
-      data: { status: OrderStatus.EXPIRED },
+      select: { id: true },
     });
 
+    // 2. PROSES UPDATE & CATAT HISTORY (Jika ada yang expired)
+    if (expiredOrders.length > 0) {
+      const expiredIds = expiredOrders.map((o) => o.id);
+
+      await prisma.$transaction([
+        // Update status ke EXPIRED
+        prisma.transaction.updateMany({
+          where: { id: { in: expiredIds } },
+          data: { status: OrderStatus.EXPIRED },
+        }),
+        // Catat otomatis ke OrderHistory
+        prisma.orderHistory.createMany({
+          data: expiredIds.map((id) => ({
+            transactionId: id,
+            status: OrderStatus.EXPIRED,
+            notes: "Dibatalkan otomatis oleh sistem (Waktu pembayaran habis)",
+            // updatedById dikosongkan karena sistem yang membatalkan
+          })),
+        }),
+      ]);
+    }
+
+    // 3. AMBIL DATA TRANSAKSI UNTUK FRONTEND
     const transactions = await prisma.transaction.findMany({
       where: {
         userId: userId,
         ...(req.query.status && req.query.status !== "ALL" ? { status: req.query.status as any } : {}),
       },
       include: {
+        cancellationRequest: true,
+        refundRequest: true,
         items: {
           include: {
             product: { select: { name: true, thumbnailUrl: true } },
@@ -43,13 +63,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" }, 
     });
 
-    // Tambahkan header untuk mencegah caching 304 jika diperlukan saat debug
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json(transactions);
   } catch (error) {
+    console.error("ERROR_FETCH_ORDERS:", error);
     return res.status(500).json({ message: "Gagal memuat pesanan" });
   }
 }

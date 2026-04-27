@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Cari transaksi berdasarkan invoice
     const transaction = await prisma.transaction.findUnique({
-      where: { invoice: String(id) },
+      where: { invoice: String(id), userId: userId },
       include: {
         // PERBAIKAN: Tambahkan shippingAddress agar alamat muncul
         shippingAddress: true, 

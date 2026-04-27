@@ -27,14 +27,16 @@ model User {
   updatedAt        DateTime? @default(now()) @updatedAt
 
   // Relations
-  accounts         Account[]
-  sessions         Session[]
-  addresses        Address[]
-  cartItems        CartItem[]
-  transactions     Transaction[]
-  orderHistories   OrderHistory[]
-  refundRequests    RefundRequest[]
-  requestGenerates RequestGenerate[]
+  accounts           Account[]
+  sessions           Session[]
+  addresses          Address[]
+  cartItems          CartItem[]
+  transactions       Transaction[]
+  orderHistories     OrderHistory[]
+  refundRequests     RefundRequest[]
+  // PERBAIKAN: User bisa punya banyak permintaan pembatalan (List)
+  cancellationRequests CancellationRequest[] 
+  requestGenerates   RequestGenerate[]
 }
 
 model Address {
@@ -155,9 +157,9 @@ model StockLog {
 
 
 model OrderAddress {
-  id             String      @id @default(cuid())
-  transactionId  String      @unique
-  transaction    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  id              String      @id @default(cuid())
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   // Data Snapshot
   recipientName  String
@@ -194,7 +196,7 @@ model Transaction {
   waybill         String? 
 
   paymentMethod   String
-  midtransOrderId String?     @unique
+  midtransOrderId String?      @unique
   bankName        String?
   vaNumber        String?
   paymentCode     String?
@@ -207,22 +209,23 @@ model Transaction {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User           @relation(fields: [userId], references: [id])
-  promo    Promo?         @relation(fields: [promoId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+  promo    Promo?          @relation(fields: [promoId], references: [id])
   items    OrderItem[]
   history  OrderHistory[]
   shipment Shipment?  
   refundRequest RefundRequest?
-
+  cancellationRequest CancellationRequest?
+  
   @@index([userId])
   @@index([status])
 }
 
 
 model Shipment {
-  id             String      @id @default(cuid())
-  transactionId  String      @unique
-  transaction    Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  id              String      @id @default(cuid())
+  transactionId   String      @unique
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   // Data Identitas Pengiriman
   isInsurance    Boolean  @default(false)
@@ -231,16 +234,16 @@ model Shipment {
   courierCode    String     
   courierService String      
   
-  // Data Teknis Rute (Dipindahkan dari Transaction)
+  // Data Teknis Rute
   destination     String? 
   originCode      String?   
   destinationCode String?   
-  ursaCode        String?    
+  ursaCode        String?   
 
   // Operasional
-  status         String      @default("PENDING")
-  weight         Float       @default(0)
-  apiPayload     Json?       
+  status          String      @default("PENDING")
+  weight          Float       @default(0)
+  apiPayload      Json?       
 
   printStatus     PrintStatus    @default(NOT_PRINTED)
   printCount      Int            @default(0) 
@@ -258,9 +261,9 @@ model OrderItem {
   variantId       String?
   quantity        Int     @default(1)
   priceAtBuy      Int
-  weightAtBuy     Float?
+  weightAtBuy      Float?
   dimensionsAtBuy Json?
-  createdAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
 
   transaction Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   product     Product         @relation(fields: [productId], references: [id])
@@ -295,7 +298,7 @@ model Promo {
   createdAt   DateTime  @default(now())
 
   applicableProducts Product[]
-  transactions       Transaction[]
+  transactions        Transaction[]
 
   @@index([status, startDate, endDate])
   @@index([code])
@@ -356,8 +359,6 @@ model Warehouse {
   updatedAt       DateTime @updatedAt
 }
 
-
-
 model Header {
   id                Int             @id @default(autoincrement())
   header            String          @unique
@@ -409,17 +410,36 @@ model RefundRequest {
   user          User         @relation(fields: [userId], references: [id])
   amount        Int
   reason        String
-  status        RefundStatus @default(PENDING)
+  status        ActionStatus @default(PENDING)
   adminNotes    String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }
 
-enum RefundStatus {
+model CancellationRequest {
+  id            String      @id @default(cuid())
+  transactionId String      @unique
+  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  
+  reason        String      // Alasan pembatalan
+  amount        Int         // Total yang harus dikembalikan ke user
+  status        ActionStatus @default(PENDING)
+  adminNotes    String?     // Catatan admin jika menolak/menyetujui
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+enum ActionStatus {
   PENDING
   APPROVED
+  REFUNDED
   REJECTED
 }
+
+
 
 enum PrintStatus {
   NOT_PRINTED
@@ -438,4 +458,3 @@ enum OrderStatus {
   REFUNDED
   FAILED
 }
-

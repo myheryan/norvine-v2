@@ -17,7 +17,6 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps) {
           <Layout pageProps={pageProps}>
       <Toaster 
         position="top-center"
-        richColors
           toastOptions={{
             style: { fontFamily: 'var(--font-sans)' },
           }} />

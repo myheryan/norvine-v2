@@ -1,6 +1,8 @@
+// lib/utils.ts
 import { clsx, type ClassValue } from "clsx"
 import { toast } from "sonner"
 import { twMerge } from "tailwind-merge"
+import { ActionStatus, OrderStatus } from "@/generated/prisma/enums"; // Pastikan path enum benar
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -198,3 +200,71 @@ export const formatPhoneNumber = (value: any) => {
 export const WeightToGram = (product_weight: any) => {
     return product_weight / 1000;
 }
+
+
+
+export const getStatusColor = (status: ActionStatus | string) => {
+  switch (status) {
+    case "PENDING":
+      return "text-orange-500 bg-orange-50 border-orange-100";
+    case "APPROVED":
+      return "text-blue-500 bg-blue-50 border-blue-100";
+    case "REFUNDED":
+      return "text-emerald-500 bg-emerald-50 border-emerald-100";
+    case "REJECTED":
+      return "text-red-500 bg-red-50 border-red-100";
+    default:
+      return "text-gray-500 bg-gray-50 border-gray-100";
+  }
+};
+
+// Bapak juga bisa sekalian buat fungsi untuk Label-nya agar seragam
+export const getStatusLabel = (status: ActionStatus | string) => {
+  switch (status) {
+    case "PENDING": return "Menunggu Verifikasi";
+    case "APPROVED": return "Disetujui Admin";
+    case "REFUNDED": return "Dana Dikembalikan";
+    case "REJECTED": return "Permintaan Ditolak";
+    default: return status;
+  }
+};
+
+
+export const getOrderStatusColor = (status: OrderStatus | string) => {
+  switch (status) {
+    case "PENDING":
+      return "text-orange-600 bg-orange-50 border-orange-100"; // Menunggu bayar
+    case "PAID":
+    case "PROCESSING":
+      return "text-blue-600 bg-blue-50 border-blue-100"; // Proses internal
+    case "READY_TO_SHIP":
+    case "SHIPPED":
+      return "text-zinc-900 bg-zinc-50 border-zinc-200"; // Logistik (Warna Norvine)
+    case "COMPLETED":
+      return "text-emerald-600 bg-emerald-50 border-emerald-100"; // Selesai
+    case "CANCELLED":
+    case "EXPIRED":
+    case "FAILED":
+      return "text-red-600 bg-red-50 border-red-100"; // Gagal/Batal
+    case "REFUNDED":
+      return "text-purple-600 bg-purple-50 border-purple-100"; // Dana kembali
+    default:
+      return "text-gray-500 bg-gray-50 border-gray-100";
+  }
+};
+
+export const getOrderStatusLabel = (status: OrderStatus | string) => {
+  switch (status) {
+    case "PENDING": return "Menunggu Pembayaran";
+    case "PAID": return "Pembayaran Terverifikasi";
+    case "PROCESSING": return "Sedang Diproses";
+    case "READY_TO_SHIP": return "Siap Dikirim";
+    case "SHIPPED": return "Dalam Pengiriman";
+    case "COMPLETED": return "Pesanan Selesai";
+    case "CANCELLED": return "Dibatalkan";
+    case "EXPIRED": return "Pembayaran Kadaluarsa";
+    case "REFUNDED": return "Dana Dikembalikan";
+    case "FAILED": return "Transaksi Gagal";
+    default: return status;
+  }
+};

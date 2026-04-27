@@ -271,6 +271,7 @@ blockquote {
 }
 
 /* Target container utama Sonner */
+/* Container utama toaster */
 [data-sonner-toaster] {
   top: 10% !important;
   left: 50% !important;
@@ -284,10 +285,45 @@ blockquote {
   pointer-events: none;
 }
 
-/* Pastikan toast di dalamnya juga terpusat */
+/* Styling item toast (isinya) */
 [data-sonner-toast] {
-  margin: 0 auto !important;
-  pointer-events: auto;
+  background: #09090b !important; /* zinc-950 */
+  border: 1px solid #27272a !important; /* zinc-800 */
+  border-radius: 0px !important; /* sudut kotak tajam */
+  color: #ffffff !important;
+  padding: 12px 16px !important;
+  min-width: 280px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+}
+
+/* Judul pesan */
+[data-sonner-toast] [data-title] {
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  text-transform: none !important; /* Memastikan tidak uppercase */
+  color: #ffffff !important;
+}
+
+/* Deskripsi tambahan (jika ada) */
+[data-sonner-toast] [data-description] {
+  font-size: 11px !important;
+  color: #a1a1aa !important; /* zinc-400 */
+  margin-top: 2px !important;
+  text-transform: none !important; /* Memastikan tidak uppercase */
+}
+
+/* Warna icon agar seragam putih */
+[data-sonner-toast] [data-icon] {
+  color: #ffffff !important;
+}
+
+/* Tombol close (jika diaktifkan) */
+[data-sonner-toast] [data-close-button] {
+  background: #18181b !important;
+  border: 1px solid #27272a !important;
+  border-radius: 0px !important;
+  color: #ffffff !important;
 }
 
 /* styles/globals.css */
