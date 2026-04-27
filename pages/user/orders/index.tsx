@@ -157,10 +157,10 @@ export default function UserOrdersPage() {
                   </div>
 
                   {/* LINK CARD */}
-                  <Link href={dest} className="block hover:bg-gray-50/40 transition-colors">
+                  <Link href={dest} className="block hover:bg-gray-50/40 transition-colors pt-2">
                     {trx.items?.slice(0, 1).map((item: any) => (
-                      <div key={item.id} className="flex items-center gap-4 px-2 pt-2">
-                        <div className={`relative h-14 w-14 bg-gray-50 border border-gray-300 shrink-0 ${isExpired && !isReqBatal ? "grayscale" : ""}`}>
+                      <div key={item.id} className="flex items-center gap-4 px-2">
+                        <div className={`relative h-16 w-16 bg-gray-50 border border-gray-300 shrink-0 ${isExpired && !isReqBatal ? "grayscale" : ""}`}>
                           <Image src={getCloudinaryImage(item.product?.thumbnailUrl || "/placeholder.png", 200, 200)} alt="p" fill className="object-cover" />
                         </div>
                         <div className="flex-1 min-w-0">
