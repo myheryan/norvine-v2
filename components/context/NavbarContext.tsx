@@ -1,25 +1,12 @@
 'use client' // WAJIB untuk Context di App Router
 
 import { createContext, useState, ReactNode, useEffect } from 'react'
-// Gunakan usePathname dari navigation, bukan next/router
 import { usePathname } from 'next/navigation'
 
 type Props = {
   children: ReactNode
 }
 
-// Konstanta breakpoint tetap sama sesuai desain Norvine Anda
-const SCROLL_COLOR_CHANGE_CONSTANT = 25
-const SCENE_BREAKPOINT = {
-  mainCarousel: 0,
-  overview: 1080,
-  bestSeller: 2166,
-  composition: 3246,
-  chooseSupplement: 4326,
-  verificationLanding: 5406,
-  partOfUs: 6486,
-  instagram: 7566,
-}
 
 type LandingComponents =
   | 'mainCarousel-1'

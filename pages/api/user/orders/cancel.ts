@@ -20,7 +20,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!transaction) return res.status(404).json({ error: "Pesanan tidak ditemukan" });
-    if (transaction.status !== 'PENDING') {
+    if (transaction.status !== 'PENDING' && transaction.status !== 'PROCESSING') {
       return res.status(400).json({ error: "Hanya pesanan pending yang bisa dibatalkan" });
     }
 

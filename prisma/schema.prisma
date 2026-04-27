@@ -33,6 +33,7 @@ model User {
   cartItems        CartItem[]
   transactions     Transaction[]
   orderHistories   OrderHistory[]
+  refundRequests    RefundRequest[]
   requestGenerates RequestGenerate[]
 }
 
@@ -210,7 +211,8 @@ model Transaction {
   promo    Promo?         @relation(fields: [promoId], references: [id])
   items    OrderItem[]
   history  OrderHistory[]
-  shipment Shipment?      // Relasi ke Shipping Hub
+  shipment Shipment?  
+  refundRequest RefundRequest?
 
   @@index([userId])
   @@index([status])
@@ -399,18 +401,41 @@ model RequestGenerate {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-enum OrderStatus {
+model RefundRequest {
+  id            String       @id @default(cuid())
+  transactionId String       @unique
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  amount        Int
+  reason        String
+  status        RefundStatus @default(PENDING)
+  adminNotes    String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+enum RefundStatus {
   PENDING
-  PAID
-  PROCESSING
-  SHIPPED
-  COMPLETED
-  CANCELLED
-  EXPIRED
-  FAILED   
+  APPROVED
+  REJECTED
 }
 
 enum PrintStatus {
   NOT_PRINTED
   PRINTED
 }
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING     
+  READY_TO_SHIP  
+  SHIPPED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+  REFUNDED
+  FAILED
+}
+

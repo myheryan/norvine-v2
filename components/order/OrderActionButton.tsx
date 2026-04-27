@@ -42,7 +42,7 @@ export const OrderActionButton = ({
         break;
 
       case "PAID":
-        // BOLEH BATAL JIKA BARU PAID (BELUM SETTLEMENT/PROCESSING)
+      case "PROCESSING":
         buttons.push({
           label: "Batalkan Pesanan",
           className: "text-zinc-400 hover:text-red-500 hover:border-red-500",
@@ -51,32 +51,22 @@ export const OrderActionButton = ({
             onCancel(trx);
           },
         });
+
+        break;
+      case "READY_TO_SHIP":
         buttons.push({
-          label: "Lihat Invoice",
-          className: "text-white hover:bg-zinc-50",
+          label: "Lacak Pesanan",
+          className: "text-white hover:bg-black",
           onClick: (e: any) => {
             e.preventDefault(); e.stopPropagation();
-            router.push(`/invoice/${trx.invoice}`);
+            onOpenTracking(trx);
           },
         });
         break;
-
-      case "SETTLEMENT":
-      case "PROCESSING":
-        buttons.push({
-          label: "Lihat Invoice",
-          className: "text-white hover:bg-zinc-50",
-          onClick: (e: any) => {
-            e.preventDefault(); e.stopPropagation();
-            router.push(`/invoice/${trx.invoice}`);
-          },
-        });
-        break;
-
       case "SHIPPED":
         // TAMBAHKAN KOMPLAIN SAAT DI JALAN
         buttons.push({
-          label: "Komplain",
+          label: "Hubungi Admin",
           className: "border border-orange-200 text-orange-500 hover:bg-orange-50",
           onClick: (e: any) => {
             e.preventDefault(); e.stopPropagation();
@@ -120,6 +110,16 @@ export const OrderActionButton = ({
           onClick: (e: any) => {
             e.preventDefault(); e.stopPropagation();
             router.push(`/our-products`);
+          },
+        });
+        break;
+     case "REFUNDED":
+        buttons.push({
+          label: "Ajukan Pengembalian",
+          className: "text-zinc-400 hover:text-zinc-900",
+          onClick: (e: any) => {
+            e.preventDefault(); e.stopPropagation();
+            router.push(`/return/${trx.invoice}`);
           },
         });
         break;

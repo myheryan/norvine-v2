@@ -111,7 +111,7 @@ export default function CheckoutPage() {
       
       const currentHeight = Number(dim.height) || defDim.height || 12;
       const currentLength = Number(dim.length) || defDim.length || 5;
-      const currentWidth = Number(dim.width) || defDim.width || 0;
+      const currentWidth = Number(dim.width) || defDim.width || 5;
 
       acc.maxHeight = Math.max(acc.maxHeight, currentHeight);
       acc.maxLength = Math.max(acc.maxLength, currentLength);
@@ -152,7 +152,7 @@ export default function CheckoutPage() {
               estimasi_sla: item.estimasi_sla,
               status: item.status,
               origin_code: rawResponse.origin, 
-              destination_code: rawResponse.destination,
+              destination: rawResponse.destination,
             }))
 
             setShippingRates(mappedRates)
@@ -218,7 +218,7 @@ export default function CheckoutPage() {
           courierService: selectedRate.product, 
           serviceType: selectedRate.service_type,
           originCode: selectedRate.origin_code,
-          destinationCode: selectedRate.destination_code, 
+          destination: selectedRate.destination, 
           tariff: selectedRate.total_tariff,
           weight: logistics.totalWeight,
           insuranceAmount: insuranceCost,

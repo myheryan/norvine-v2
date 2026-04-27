@@ -39,12 +39,6 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
 
 
 
-const XENDIT_SECRET_KEY = process.env.XENDIT_SECRET_KEY;
-// Pastikan ada titik dua (:) sebelum di-base64
-const AUTH_HEADER = Buffer.from(`${XENDIT_SECRET_KEY}:`).toString('base64');
-
-console.log(`ini kodenya : ${AUTH_HEADER}` )
-
 
 
 
@@ -54,7 +48,7 @@ console.log(`ini kodenya : ${AUTH_HEADER}` )
     const checkPaymentStatus = async () => {
       try {
         setIsChecking(true);
-        const res = await fetch(`/api/orders/status/${invoiceId}`);
+        const res = await fetch(`/api/user/orders/status/${invoiceId}`);
         const data = await res.json();
         const successStatuses = ['PAID', 'SETTLEMENT', 'SUCCESS'];
         if (successStatuses.includes(data?.status)) {

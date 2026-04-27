@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { 
   FiChevronLeft, FiTruck, 
-  FiCreditCard, FiInfo, FiCheck 
+  FiCreditCard, FiInfo, FiCheck, FiPackage 
 } from "react-icons/fi";
 import { 
   FaFileInvoiceDollar, FaBox,
@@ -12,7 +12,7 @@ import {
 } from "react-icons/fa";
 import Image from "next/image";
 import { toast } from "sonner";
-import { formatRp, getCloudinaryImage } from "@/lib/utils";
+import { formatPhoneNumber, formatRp, getCloudinaryImage } from "@/lib/utils";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 
 export default function OrderDetailPage() {
@@ -52,10 +52,11 @@ export default function OrderDetailPage() {
 
   const isFailed = order.status === "EXPIRED" || order.status === "CANCELLED";
 
-  // LOGIKA STATUS UNTUK STEPPER
+  // LOGIKA STATUS UNTUK STEPPER (DIUBAH AGAR SESUAI PRISMA BARU)
   const steps = [
     { label: "Pesanan Dibuat", icon: <FaFileInvoiceDollar />, status: "PENDING", active: true },
     { label: "Pesanan Dibayar", icon: <FiCreditCard />, status: "PAID", active: !["PENDING"].includes(order.status) && !isFailed },
+    { label: "Diproses", icon: <FiPackage />, status: "READY_TO_SHIP", active: ["READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(order.status) },
     { label: "Pesanan Dikirim", icon: <FiTruck />, status: "SHIPPED", active: ["SHIPPED", "COMPLETED"].includes(order.status) },
     { label: "Pesanan Selesai", icon: <FaBox />, status: "COMPLETED", active: order.status === "COMPLETED" },
   ];
@@ -79,8 +80,8 @@ export default function OrderDetailPage() {
 
       <div className="max-w-4xl mx-auto mt-0.5 space-y-0.5">
         
-        {/* STEPPER STATUS (GAYA SHOPEE ENHANCED) */}
-        <div className="bg-white p-6 md:p-10 flex justify-between relative overflow-hidden">
+        {order.status !== "CANCELLED" &&(
+                 <div className="bg-white p-6 md:p-10 flex justify-between relative overflow-hidden">
           {/* Garis Dasar (Abu) */}
           <div className="absolute top-[44px] md:top-[75px] left-[12%] right-[12%] h-[4px] bg-gray-100 rounded-full" />
           {/* Garis Progres (Hijau) */}
@@ -105,7 +106,9 @@ export default function OrderDetailPage() {
               )}
             </div>
           ))}
-        </div>
+        </div> 
+        )}
+
 
         {/* NOTIFIKASI STATUS TERAKHIR */}
         <div className="bg-[#fffdf4] p-4 px-6 border-b border-[#f8ebad] flex items-center gap-3">
@@ -113,10 +116,19 @@ export default function OrderDetailPage() {
             <p className="text-[13px] text-gray-700">
                 {order.status === "PENDING" && "Mohon segera selesaikan pembayaran Anda sebelum waktu habis."}
                 {order.status === "PAID" && "Pembayaran terverifikasi. Kami sedang memproses pesanan Anda."}
+                {order.status === "READY_TO_SHIP" && "Pesanan sudah dipacking & menunggu penjemputan kurir."}
                 {order.status === "SHIPPED" && "Pesanan Anda sedang dalam perjalanan oleh kurir."}
                 {order.status === "COMPLETED" && "Pesanan telah diterima. Terima kasih telah berbelanja!"}
                 {isFailed && "Pesanan ini telah dibatalkan atau waktu pembayaran telah habis."}
             </p>
+                    <div className="max-w-4xl mx-auto flex items-center justify-end gap-3">
+          {order.status === "PENDING" && (
+            <button onClick={() => router.push(`/payment/${order.invoice}`)} className="px-8 py-2.5 bg-[#ee4d2d] text-white rounded-none font-black uppercase text-[11px] shadow-sm hover:brightness-110 transition-all">
+                Bayar Sekarang
+            </button>
+          )}
+
+        </div>
         </div>
 
         {/* INFORMASI PENGIRIMAN & LOG PENGIRIMAN */}
@@ -126,10 +138,17 @@ export default function OrderDetailPage() {
                <h3 className="text-[14px] font-bold text-black mb-4 uppercase tracking-widest flex items-center gap-2">
                  <FiTruck className="text-[#26aa99]" /> Alamat Pengiriman
                </h3>
-               <p className="font-bold text-gray-800 text-[13px] uppercase">{order.recipientName || order.user?.name}</p>
-               <p className="text-gray-500 text-[12px] mb-2">{order.recipientPhone || order.user?.phoneNumber}</p>
-               <p className="text-gray-600 text-[12px] leading-relaxed uppercase">
-                {order.shippingAddress}
+               {/* PERBAIKAN: Memanggil field di dalam objek shippingAddress */}
+               <p className="font-bold text-gray-800 text-[13px] uppercase">
+                 {order.shippingAddress?.recipientName || order.recipientName}
+               </p>
+               <p className="text-gray-500 text-[12px] mb-2">
+                 {formatPhoneNumber(order.shippingAddress?.recipientPhone || order.recipientPhone)}
+               </p>
+               <p className="text-gray-600 text-[12px] leading-relaxed">
+                {order.shippingAddress?.fullAddress} <br />
+                {order.shippingAddress?.district}, {order.shippingAddress?.city} <br />
+                {order.shippingAddress?.province}, {order.shippingAddress?.postalCode}
                </p>
             </div>
             
@@ -214,7 +233,7 @@ export default function OrderDetailPage() {
                     </td>
                   </tr>
                 )}
-               {/* Kondisional: Diskon */}
+               {/* Kondisional: Asuransi */}
                 {order.insuranceCost > 0 && (
                   <tr>
                     <td className="text-right">Asuransi</td>
@@ -251,21 +270,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* FLOATING ACTION BAR */}
-      <div className=" bg-white border-t border-gray-100 p-4 z-[60] shadow-[0_-4px_10px_rgba(0,0,0,0.05)]">
-        <div className="max-w-4xl mx-auto flex items-center justify-end gap-3">
-          {order.status === "PENDING" && (
-            <button onClick={() => router.push(`/payment/${order.invoice}`)} className="px-8 py-2.5 bg-[#ee4d2d] text-white rounded-none font-black uppercase text-[11px] shadow-sm hover:brightness-110 transition-all">
-               Bayar Sekarang
-            </button>
-          )}
-          <button onClick={() => router.push('/out-products')} className="px-6 py-2.5 bg-zinc-900 text-white rounded-none font-bold uppercase text-[11px] hover:bg-black transition-all">
-             Beli Lagi
-          </button>
-        </div>
-      </div>
-
       <style jsx>{`
         .border-surel {
           border-image: repeating-linear-gradient(45deg, #ee4d2d, #ee4d2d 33px, transparent 33px, transparent 41px, #000000 41px, #000000 74px, transparent 74px, transparent 82px) 4;

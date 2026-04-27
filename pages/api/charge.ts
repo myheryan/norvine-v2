@@ -198,7 +198,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               courierService: shippingDetails.courierService,
               destination: `${addressSnapshot.district}, ${addressSnapshot.city}`,
               originCode: shippingDetails.originCode,
-              destinationCode: shippingDetails.destinationCode,
               weight: Number(shippingDetails.weight),
               isInsurance: useInsurance,
               insuranceAmount: insuranceCost,
