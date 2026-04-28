@@ -10,7 +10,7 @@ interface PromoModalProps {
   subtotal: number;
   onClose: () => void;
   items: any[];
-  appliedPromo: any;
+  appliedPromo: { code: string | null; name: string; id?: any }; // Update Type
   setOrderData: (data: any) => void;
 }
 
@@ -36,66 +36,72 @@ export default function PromoModal({ isOpen, subtotal, onClose, items, appliedPr
     } finally { setIsFetchingList(false) }
   }
 
-const handleCheckPromo = async (codeToUse: string) => {
-  const code = codeToUse.trim().toUpperCase();
-  if (!code) return toast.error("Masukkan kode promo");
-  
-  setApplyingCode(code);
-  setIsApplying(true);
-
-  try {
-    const cartSummary = items.map(i => ({ 
-      productId: i.productId || i.id, 
-      quantity: i.quantity 
-    }));
+  const handleCheckPromo = async (codeToUse: string) => {
+    const code = codeToUse.trim().toUpperCase();
+    if (!code) return toast.error("Masukkan kode promo");
     
-    const res = await fetch(`/api/promo?code=${code}&cartItems=${encodeURIComponent(JSON.stringify(cartSummary))}`);
-    const result = await res.json();
+    setApplyingCode(code);
+    setIsApplying(true);
 
-    if (!res.ok || !result.success) throw new Error(result.message || "Voucher tidak memenuhi syarat");
+    try {
+      const cartSummary = items.map(i => ({ 
+        productId: i.productId || i.id, 
+        quantity: i.quantity 
+      }));
+      
+      const res = await fetch(`/api/promo?code=${code}&cartItems=${encodeURIComponent(JSON.stringify(cartSummary))}`);
+      const result = await res.json();
 
-    // UPDATE STATE: Pastikan discountAmount dari server masuk ke state utama
-    setOrderData((prev: any) => ({
-      ...prev,
-      appliedPromo: { 
-        id: result.promo.id, 
-        code: result.promo.code, 
-        name: result.promo.name 
-      },
-      discount: result.promo.discountAmount // Ini yang memotong harga di Checkout
-    }));
-    
-    setPromoInput(''); // Bersihkan input manual
-    toast.success("Voucher berhasil terpasang!");
-    onClose();
-  } catch (err: any) {
-    toast.error(err.message);
-  } finally {
-    setIsApplying(false);
-    setApplyingCode(null);
+      if (!res.ok || !result.success) throw new Error(result.message || "Voucher tidak memenuhi syarat");
+
+      setOrderData((prev: any) => ({
+        ...prev,
+        appliedPromo: { 
+          id: result.promo.id, 
+          code: result.promo.code, 
+          name: result.promo.name 
+        },
+        discount: result.promo.discountAmount 
+      }));
+      
+      setPromoInput('');
+      toast.success("Voucher berhasil terpasang!");
+      onClose();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsApplying(false);
+      setApplyingCode(null);
+    }
   }
-}
 
   const handleRemovePromo = () => {
-    setOrderData((prev: any) => ({ ...prev, appliedPromo: null, discount: 0 }))
+    // Kembalikan ke objek default, bukan null
+    setOrderData((prev: any) => ({ 
+      ...prev, 
+      appliedPromo: { code: null, name: '' }, 
+      discount: 0 
+    }))
     setPromoInput('')
     toast.info("Voucher dilepaskan")
   }
 
   if (!isOpen) return null
 
+  // Helper untuk cek apakah ada promo yang aktif
+  const hasActivePromo = !!appliedPromo.code;
+
   return (
-    <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4">
+    <div className="fixed inset-0 z-[99999] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4" onClick={onClose}>
       <div 
         className="bg-white w-full max-w-md h-[80vh] md:h-auto md:max-h-[650px] rounded-none flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
         onClick={(e) => e.stopPropagation()} 
       >
-        
         {/* Header */}
         <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between bg-white">
           <div>
-            <h3 className="text-lg font-bold text-zinc-900">Voucher & Promo</h3>
-            <p className="text-xs text-zinc-500 mt-0.5">Pilih promo untuk pesananmu</p>
+            <h3 className="text-lg font-bold text-zinc-900 uppercase tracking-tighter">Voucher & Promo</h3>
+            <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-0.5">Pilih promo untuk pesananmu</p>
           </div>
           <button 
             type="button"
@@ -107,24 +113,23 @@ const handleCheckPromo = async (codeToUse: string) => {
         </div>
 
         <div className="flex-1 overflow-y-auto bg-zinc-50/30 p-6 space-y-8 scrollbar-hide">
-          
           {/* Input Manual */}
           <section className="space-y-3">
-            <label className="text-sm font-semibold text-zinc-700">Punya kode promo?</label>
-            <div className={`flex bg-white border transition-all ${appliedPromo?.code ? 'border-zinc-900' : 'border-zinc-200 focus-within:border-zinc-400'}`}>
+            <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">Punya kode promo?</label>
+            <div className={`flex bg-white border transition-all ${hasActivePromo ? 'border-zinc-900' : 'border-zinc-200 focus-within:border-zinc-400'}`}>
               <input 
                 type="text" 
-                value={appliedPromo?.code || promoInput}
-                disabled={!!appliedPromo?.code || isApplying}
+                value={hasActivePromo ? appliedPromo.code : promoInput}
+                disabled={hasActivePromo || isApplying}
                 onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
-                placeholder="Masukkan Kode Promo" 
-                className="flex-1 px-4 py-3 bg-transparent outline-none text-sm placeholder:text-zinc-400 disabled:text-zinc-900 font-medium"
+                placeholder="MASUKKAN KODE" 
+                className="flex-1 px-4 py-3 bg-transparent outline-none text-sm placeholder:text-zinc-300 disabled:text-zinc-900 font-bold tracking-widest"
               />
-              {appliedPromo?.code ? (
+              {hasActivePromo ? (
                 <button 
                   type="button"
                   onClick={handleRemovePromo} 
-                  className="px-6 py-3 text-red-600 text-sm font-bold hover:bg-red-50 transition-colors"
+                  className="px-6 py-3 text-red-600 text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-colors"
                 >
                   Lepas
                 </button>
@@ -133,7 +138,7 @@ const handleCheckPromo = async (codeToUse: string) => {
                   type="button"
                   onClick={() => handleCheckPromo(promoInput)}
                   disabled={!promoInput || isApplying}
-                  className="px-6 py-3 bg-zinc-900 text-white text-sm font-bold disabled:bg-zinc-200 transition-all active:scale-95"
+                  className="px-6 py-3 bg-zinc-900 text-white text-[10px] font-black uppercase tracking-widest disabled:bg-zinc-100 disabled:text-zinc-400 transition-all active:scale-95"
                 >
                   {isApplying ? '...' : 'Pakai'}
                 </button>
@@ -143,22 +148,22 @@ const handleCheckPromo = async (codeToUse: string) => {
 
           {/* Daftar Voucher */}
           <section className="space-y-4">
-            <h4 className="text-sm font-semibold text-zinc-700">Promo Tersedia</h4>
+            <h4 className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">Promo Tersedia</h4>
             
             {isFetchingList ? (
               <div className="py-20 flex flex-col items-center justify-center gap-3">
                 <FiLoader className="animate-spin text-zinc-900" size={24} />
-                <span className="text-sm text-zinc-500">Memuat promo...</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Memuat...</span>
               </div>
             ) : (
               <div className="space-y-3">
                 {availablePromos.length === 0 ? (
                     <div className="py-10 text-center border border-dashed border-zinc-200 bg-white">
-                        <p className="text-sm text-zinc-400">Belum ada promo tersedia saat ini</p>
+                        <p className="text-[10px] uppercase tracking-widest text-zinc-400 font-bold">Belum ada promo tersedia</p>
                     </div>
                 ) : availablePromos.map((promo) => {
-                  const isSelected = !!appliedPromo && appliedPromo.code === promo.code;
-                  const isLocked = !!appliedPromo && !isSelected;
+                  const isSelected = appliedPromo.code === promo.code;
+                  const isLocked = hasActivePromo && !isSelected;
 
                   return (
                     <div 
@@ -169,41 +174,38 @@ const handleCheckPromo = async (codeToUse: string) => {
                       }}
                       className={`relative flex h-24 border transition-all rounded-none ${
                         isSelected 
-                          ? 'border-zinc-900 bg-white shadow-md z-10' 
+                          ? 'border-zinc-900 bg-white shadow-lg z-10 scale-[1.02]' 
                           : 'border-zinc-200 bg-white hover:border-zinc-400'
-                      } ${isLocked ? 'opacity-40 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
+                      } ${isLocked ? 'opacity-30 grayscale cursor-not-allowed' : 'cursor-pointer'}`}
                     >
-                      {/* Ticket Left */}
-                      <div className={`w-20 flex flex-col items-center justify-center border-r border-dashed border-zinc-200 ${isSelected ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-400'}`}>
+                      <div className={`w-20 flex flex-col items-center justify-center border-r border-dashed border-zinc-200 ${isSelected ? 'bg-zinc-900 text-white' : 'bg-zinc-50 text-zinc-300'}`}>
                         <FiTag size={20} />
-                        <span className="text-[10px] font-bold mt-1">PROMO</span>
+                        <span className="text-[8px] font-black mt-1 tracking-tighter">NORVINE</span>
                       </div>
 
-                      {/* Ticket Right */}
                       <div className="flex-1 p-4 flex flex-col justify-between">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h5 className="text-sm font-bold text-zinc-900">
-                              {promo.type === 'PERCENT' ? `${promo.value}% Potongan` : `${formatRp(promo.value)} Potongan`}
+                            <h5 className="text-xs font-black uppercase tracking-tighter text-zinc-900">
+                              {promo.type === 'PERCENT' ? `${promo.value}% OFF` : `POTONGAN ${formatRp(promo.value)}`}
                             </h5>
-                            <p className="text-xs text-zinc-500 mt-0.5">
-                              Min. Belanja {formatRp(promo.minOrder)}
+                            <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+                              MIN. BELANJA {formatRp(promo.minOrder)}
                             </p>
                           </div>
                           {isSelected && <FiCheckCircle className="text-zinc-900" size={18} />}
                         </div>
                         
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-mono font-bold bg-zinc-100 px-2 py-0.5 text-zinc-600">
+                          <span className="text-[10px] font-mono font-bold bg-zinc-100 px-2 py-0.5 text-zinc-600 tracking-widest">
                             {promo.code}
                           </span>
-                          <span className={`text-xs font-bold transition-colors ${isSelected ? 'text-red-600' : 'text-zinc-900'}`}>
-                            {applyingCode === promo.code ? 'Memproses...' : isSelected ? 'Lepas Promo' : 'Gunakan'}
+                          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isSelected ? 'text-red-600' : 'text-zinc-900'}`}>
+                            {applyingCode === promo.code ? '...' : isSelected ? 'LEPAS' : 'GUNAKAN'}
                           </span>
                         </div>
                       </div>
 
-                      {/* Notch Circles */}
                       <div className="absolute top-1/2 -translate-y-1/2 -left-2.5 w-5 h-5 bg-zinc-50 md:bg-white rounded-full border border-zinc-200 z-20" />
                       <div className="absolute top-1/2 -translate-y-1/2 -right-2.5 w-5 h-5 bg-zinc-50 md:bg-white rounded-full border border-zinc-200 z-20" />
                     </div>
@@ -217,9 +219,9 @@ const handleCheckPromo = async (codeToUse: string) => {
         {/* Footer */}
         <div className="p-6 bg-zinc-50 border-t border-zinc-100">
           <div className="flex items-start gap-3">
-            <FiAlertCircle className="text-zinc-400 shrink-0 mt-0.5" size={16} />
-            <p className="text-xs text-zinc-500 leading-normal">
-              Voucher hanya berlaku untuk satu kali transaksi. Syarat dan ketentuan berlaku sesuai dengan kebijakan promo Norvine.
+            <FiAlertCircle className="text-zinc-400 shrink-0 mt-0.5" size={14} />
+            <p className="text-[9px] font-bold text-zinc-400 uppercase leading-loose tracking-widest">
+              Voucher hanya berlaku untuk satu kali transaksi. Syarat dan ketentuan berlaku sesuai kebijakan Norvine Terminal.
             </p>
           </div>
         </div>

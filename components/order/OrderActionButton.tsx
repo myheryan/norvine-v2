@@ -31,11 +31,11 @@ export const OrderActionButton = ({
         // BELUM BAYAR: Pembatalan Tipe 1
         buttons.push({ 
           label: "Batalkan", 
-          className: "text-zinc-400 border-zinc-100", 
+          className: "bg-zinc-900 text-zinc-400 border-zinc-100", 
           onClick: () => onCancel(trx) 
         });
         buttons.push({ 
-          label: "Bayar", 
+          label: "Bayar Sekarang", 
           className: "bg-[#ee4d2d] text-white border-none shadow-sm", 
           onClick: (e: any) => handlePayment(e, trx) 
         });
@@ -47,14 +47,14 @@ export const OrderActionButton = ({
         // SUDAH BAYAR: Pembatalan Tipe 2 (Kembali Dana)
         if (hasCancelReq) {
           buttons.push({ 
-            label: "Pantau Batal", 
+            label: "Tinjau Pembatalan", 
             className: "bg-red-50 text-red-600 border-red-100", 
             onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
           });
         } else {
           buttons.push({ 
-            label: "Ajukan Batal", 
-            className: "text-zinc-400 border-zinc-100", 
+            label: "Ajukan Pembatalan", 
+            className: "bg-zinc-900 text-zinc-400 border-zinc-100", 
             onClick: () => onCancel(trx) 
           });
         }
@@ -75,32 +75,18 @@ export const OrderActionButton = ({
           className: "bg-zinc-900 text-white border-none", 
           onClick: () => onOpenTracking(trx) 
         });
-        if (hasReturnReq) {
-          buttons.push({ 
-            label: "Pantau Retur", 
-            className: "bg-orange-50 text-orange-600 border-orange-200", 
-            onClick: () => router.push(`/user/orders/refund/${trx.invoice}`) 
-          });
-        } else {
-          buttons.push({ 
-            label: "Retur Barang", 
-            className: "text-orange-500 border-orange-100", 
-            onClick: () => onReturn(trx) 
-          });
-        }
         break;
 
       case "COMPLETED":
-        // SELESAI: Fokus ke Beli Lagi atau Retur jika bermasalah
         if (hasReturnReq) {
           buttons.push({ 
-            label: "Detail Retur", 
+            label: "Tinjau Pengembalian Baarang", 
             className: "bg-orange-50 text-orange-600 border-orange-200", 
             onClick: () => router.push(`/user/orders/refund/${trx.invoice}`) 
           });
         } else {
           buttons.push({ 
-            label: "Retur Barang", 
+            label: "Return Barang", 
             className: "text-orange-500 border-orange-100", 
             onClick: () => onReturn(trx) 
           });
@@ -116,7 +102,7 @@ export const OrderActionButton = ({
       case "EXPIRED":
         // SUDAH BATAL
         buttons.push({ 
-          label: "Detail Batal", 
+          label: "Detail Pembatalan", 
           className: "text-zinc-500 border-zinc-200", 
           onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
         });

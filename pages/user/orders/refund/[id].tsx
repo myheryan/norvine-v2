@@ -42,51 +42,6 @@ export default function RefundPage() {
   return (
     <div className="min-h-screen md:pt-3">
       <div className="bg-white border-b border-gray-100">
-        {/* Stepper khusus Pengembalian Barang (Refund/Retur) */}
-<div className="bg-white p-6 md:p-10 flex justify-between relative overflow-hidden">
-  {/* 1. Garis Abu-abu Latar */}
-  <div className="absolute top-[44px] md:top-[75px] left-[15%] right-[15%] h-[2px] bg-gray-100 rounded-none" />
-  
-  {/* 2. Garis Hitam Progress - Dinamis sesuai status refund */}
-  <div 
-    className="absolute top-[44px] md:top-[75px] left-[15%] h-[2px] bg-zinc-950 transition-all duration-700 rounded-none" 
-    style={{ 
-      width: order.refundRequest.status === "REFUNDED" ? "70%" : 
-             ["APPROVED", "PENDING"].includes(order.refundRequest.status) ? "35%" : "0%" 
-    }} 
-  />
-  
-  {[
-    { 
-      label: "Pengajuan retur", 
-      icon: <FiInfo />, 
-      active: true 
-    },
-    { 
-      label: "Verifikasi admin", 
-      icon: <FiClock />, 
-      active: ["PENDING", "APPROVED", "REFUNDED"].includes(order.refundRequest.status) 
-    },
-    { 
-      label: "Refund selesai", 
-      icon: <FiCheck />, 
-      active: order.refundRequest.status === "REFUNDED" 
-    },
-  ].map((step, i) => (
-    <div key={i} className="relative z-10 flex flex-col items-center flex-1 text-center">
-      <div className={`w-10 h-10 md:w-18 md:h-18 rounded-none flex items-center justify-center text-lg md:text-xl border-[4px] border-white shadow-sm transition-all duration-500 ${step.active ? 'bg-zinc-950 text-white' : 'bg-white text-gray-300 border-gray-100'}`}>
-        {step.active && i < 2 ? <FiCheck strokeWidth={4} /> : step.icon}
-      </div>
-      <p className={`mt-3 font-bold text-[11px] md:text-[13px] leading-tight ${step.active ? 'text-zinc-950' : 'text-gray-300'}`}>
-        {step.label}
-      </p>
-      {/* Info tambahan jika sudah selesai */}
-      {i === 2 && step.active && (
-        <p className="text-[10px] text-emerald-600 font-medium mt-1">Dana dikirim</p>
-      )}
-    </div>
-  ))}
-</div>
         <div className="max-w-4xl mx-auto px-4 h-14 flex items-center"><button onClick={() => router.back()} className="flex items-center gap-1 text-gray-500 font-medium"><FiChevronLeft size={18} /> Kembali</button></div>
       </div>
       <div className="max-w-4xl mx-auto mt-0.5 space-y-0.5">

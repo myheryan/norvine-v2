@@ -29,7 +29,7 @@ export default function CheckoutPage() {
     items: [] as any[], 
     subtotal: 0, 
     discount: 0,
-    appliedPromo: null as any 
+    appliedPromo: { code: null, name: '' }
   })
 
   // State Alamat Terstruktur (Snapshot untuk OrderAddress)
@@ -91,7 +91,12 @@ export default function CheckoutPage() {
       try {
         const parsed = JSON.parse(cartPayload);
         if (parsed.items?.length > 0) {
-          setOrderData(prev => ({ ...prev, items: parsed.items, subtotal: parsed.subtotal || 0 }));
+          setOrderData(prev => ({ ...prev, 
+            items: parsed.items, 
+            subtotal: parsed.subtotal || 0 ,
+            discount: 0,
+            appliedPromo: prev.appliedPromo || { code: null, name: '' }
+          }));
           dataWasFound = true;
         }
       } catch (e) { console.error(e); }

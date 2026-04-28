@@ -157,7 +157,7 @@ export default function UserOrdersPage() {
                   </div>
 
                   {/* LINK CARD */}
-                  <Link href={dest} className="block hover:bg-gray-50/40 transition-colors pt-2">
+                  <Link href={dest} className="block hover:bg-gray-50/40 transition-colors py-3">
                     {trx.items?.slice(0, 1).map((item: any) => (
                       <div key={item.id} className="flex items-center gap-4 px-2">
                         <div className={`relative h-16 w-16 bg-gray-50 border border-gray-300 shrink-0 ${isExpired && !isReqBatal ? "grayscale" : ""}`}>
@@ -171,7 +171,6 @@ export default function UserOrdersPage() {
                         <div className="text-[12px] font-black text-zinc-600 mt-1">
                           {formatRp(item.priceAtBuy)} 
                         </div>
-                        <FiChevronRight className="text-gray-200" />
                       </div>
                     ))}
                     {trx.items && trx.items.length > 1 && (
@@ -190,7 +189,7 @@ export default function UserOrdersPage() {
                        <p className="text-xs text-red-700 tracking-tight">Permintaan Pembatalan Dana Sedang Ditinjau</p>
                     </div>
                   )}
-                  {isReqRetur && (
+                  {isReqRetur && !isReqBatal && (
                     <div className="px-3 py-2 bg-orange-50/30 border-t border-orange-100 flex items-center gap-2">
                        <FiRotateCcw className="text-orange-400" size={12} />
                        <p className="text-xs text-orange-400 tracking-tight">Permintaan Pengembalian Barang Diajukan</p>
@@ -198,7 +197,7 @@ export default function UserOrdersPage() {
                   )}
 
                   {/* FOOTER ACTIONS */}
-                  <div className="px-3 py-3 border-t border-dashed border-gray-100 flex flex-row justify-between gap-2 bg-slate-50/50">
+                  <div className="px-3 py-2 border-t border-dashed border-gray-100 flex flex-row justify-between gap-2 bg-slate-50/50">
                     <div className="flex flex-row grow justify-between items-center text-gray-400 text-[13px]">
                       <div className="flex flex-col md:flex-row md:gap-3 items-center justify-end">
                         <span className="text-gray-700 ">Total Pesanan</span>

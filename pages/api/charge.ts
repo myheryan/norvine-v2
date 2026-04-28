@@ -218,7 +218,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       await tx.orderHistory.create({
-        data: { transactionId: transaction.id, status: "PENDING", notes: "Checkout berhasil, menunggu pembayaran QRIS." }
+        data: { transactionId: transaction.id, status: "PENDING", notes: "Checkout berhasil, menunggu pembayaran." }
       });
 
       return { transaction, chargeRes, validatedItems };

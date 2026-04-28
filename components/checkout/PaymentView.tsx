@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { toast } from 'sonner'
-import { FiChevronDown, FiArrowLeft, FiLoader, FiCopy } from 'react-icons/fi'
+import { FiChevronDown, FiArrowLeft, FiLoader, FiCopy, FiDownload } from 'react-icons/fi'
 import { formatRp } from '@/lib/utils'
-import Image from 'next/image'
 import { QRCodeCanvas } from 'qrcode.react';
 
 interface PaymentViewProps {
@@ -31,16 +30,18 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
 
   const vaNumber = transaction?.vaNumber || transaction?.paymentCode || "-";
   const bankName = transaction?.bankName?.toLowerCase() || 'bank';
-  const qrUrl = transaction?.qrUrl; // Tambahkan field QR
+  const qrUrl = transaction?.qrUrl; 
   const expiryDate = transaction?.paymentExpiry;
   const invoiceId = transaction?.invoice;
   const createdAt = transaction?.createdAt;
   const totalAmount = transaction?.totalAmount || 0;
 
-
-
-
-
+  // --- LOGIKA DOWNLOAD QR (NORVINE API) ---
+  const handleDownloadQR = () => {
+    // Memanggil API Page Router yang telah dibuat sebelumnya
+    window.location.href = `/api/transactions/download-qr/${transaction.id}`;
+    toast.info("Mendownload QR Code...");
+  };
 
   // --- LOGIKA REAL-TIME POLLING ---
   useEffect(() => {
@@ -106,7 +107,6 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
         
         {/* KONDISIONAL: QRIS ATAU VA */}
         {qrUrl ? (
-          /* TIPE PEMBAYARAN QRIS */
           <div className="flex flex-col items-center space-y-6">
             <div className="flex items-center gap-3 w-full">
               <div className="w-8 h-8 bg-zinc-900 flex items-center justify-center text-[10px] text-white font-bold uppercase">
@@ -115,25 +115,34 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
               <span className="text-base font-bold text-gray-700 capitalize">QRIS / QR Payment</span>
             </div>
             
-            <div className="p-4 border border-gray-100 bg-white shadow-sm inline-block">
+            <div className="p-4 border border-zinc-900 bg-white shadow-sm inline-block">
                 {transaction.qrUrl && !transaction.qrUrl.startsWith('http') ? (
-                  <div className="bg-white p-4 inline-block">
+                  <div className="bg-white p-2 inline-block">
                     <QRCodeCanvas 
                       value={transaction.qrUrl} 
                       size={256}
                       level="H"
-                      includeMargin={true}
+                      includeMargin={false}
                     />
                   </div>
                 ) : (
-                  // Jika ternyata itu URL (seperti dari Midtrans), baru pakai <img>
-                  <img src={transaction.qrUrl} alt="QRIS" className="w-64 h-64" />
+                  <img src={transaction.qrUrl} alt="QRIS" className="w-64 h-64 object-contain" />
                 )}
             </div>
+
+            {/* Tombol Download Design Norvine */}
+            <button 
+              onClick={handleDownloadQR}
+              className="flex items-center gap-2 px-4 py-2 border border-zinc-900 text-zinc-900 hover:bg-zinc-900 hover:text-white transition-all text-[10px] font-bold uppercase tracking-widest"
+              style={{ borderRadius: '0px' }}
+            >
+              <FiDownload size={14} /> Download QR Code
+            </button>
+
             <p className="text-xs text-gray-400 text-center uppercase tracking-widest">Scan kode di atas untuk membayar</p>
           </div>
         ) : (
-          /* TIPE PEMBAYARAN VA (Original Style) */
+          /* TIPE PEMBAYARAN VA */
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-blue-900 flex items-center justify-center text-[10px] text-white font-bold uppercase">
@@ -178,7 +187,6 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
 
         {/* Payment Guide Tabs */}
         <div className="space-y-1">
-          {/* Instruksi dinamis berdasarkan tipe pembayaran */}
           {(qrUrl ? ['Cara Bayar QRIS'] : ['mBanking', 'iBanking', 'ATM']).map((method) => (
             <div key={method} className="border-b border-gray-50 last:border-0">
               <button 
@@ -223,7 +231,8 @@ export default function PaymentView({ paymentData }: PaymentViewProps) {
         {/* Action Button */}
         <button 
           onClick={() => router.push('/user/orders')}
-          className="w-full py-4 bg-zinc-950 text-white text-[11px] font-bold tracking-[0.3em] uppercase hover:bg-zinc-800 transition-all rounded-full shadow-md"
+          className="w-full py-4 bg-zinc-950 text-white text-[11px] font-bold tracking-[0.3em] uppercase hover:bg-zinc-800 transition-all shadow-md"
+          style={{ borderRadius: '0px' }}
         >
           Cek Status Pesanan
         </button>
