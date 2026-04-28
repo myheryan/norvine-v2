@@ -267,7 +267,7 @@ export const displayStatus = (trxStatus: PaymentStatus, shipStatus?: ShipmentSta
     switch (shipStatus) {
       case "PENDING": return "Pesanan Dibayar (Menunggu Verifikasi)";
       case "PROCESSING": return "Pesanan Sedang Dikemas";
-      case "READY_TO_SHIP": return "Siap Dikirim (Menunggu Kurir)";
+      case "READY_TO_SHIP": return "Siap Dikirim";
       case "SHIPPED": return "Dalam Pengiriman";
       case "DELIVERED": return "Pesanan Selesai";
       case "FAILED": return "Gagal Dikirim";

@@ -85,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (newStatus === PaymentStatus.PAID && currentOrder.shipment) {
         await tx.shipment.update({
           where: { transactionId: currentOrder.id },
-          data: { status: 'READY_TO_SHIP' } // Mengubah status string di model Shipment
+          data: { status: 'PROCESSING' } // Mengubah status string di model Shipment
         });
       }
 
