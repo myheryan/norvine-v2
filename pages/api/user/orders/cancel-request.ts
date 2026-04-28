@@ -70,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           transactionId: transaction.id,
           status: transaction.status,
-          notes: `USER_CANCEL_REQUEST: ${reason}`,
+          notes: `Dibatalkan: ${reason}`,
           updatedById: userId,
         },
       });

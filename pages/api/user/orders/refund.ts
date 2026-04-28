@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           transactionId: transaction.id,
           status: transaction.status,
-          notes: `User mengajukan pembatalan (Refund). Alasan: ${reason}`,
+          notes: `Pengajuan (Refund). Alasan: ${reason}`,
         }
       });
 
