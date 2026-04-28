@@ -57,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } 
     else if (xenditStatus === 'EXPIRED') {
       newStatus = OrderStatus.EXPIRED;
-      finalNote = "Batas waktu pembayaran habis. Stok akan dikembalikan otomatis.";
+      finalNote = "Batas waktu pembayaran habis.";
     } 
     else if (xenditStatus === 'FAILED') {
       newStatus = OrderStatus.FAILED;
