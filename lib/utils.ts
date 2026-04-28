@@ -2,7 +2,7 @@
 import { clsx, type ClassValue } from "clsx"
 import { toast } from "sonner"
 import { twMerge } from "tailwind-merge"
-import { ActionStatus, OrderStatus } from "@/generated/prisma/enums"; // Pastikan path enum benar
+import { ActionStatus, ShipmentStatus, PaymentStatus } from "@/generated/prisma/enums"; // Pastikan path enum benar
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -230,41 +230,51 @@ export const getStatusLabel = (status: ActionStatus | string) => {
 };
 
 
-export const getOrderStatusColor = (status: OrderStatus | string) => {
-  switch (status) {
-    case "PENDING":
-      return "text-orange-600 bg-orange-50 border-orange-100"; // Menunggu bayar
-    case "PAID":
-    case "PROCESSING":
-      return "text-blue-600 bg-blue-50 border-blue-100"; // Proses internal
-    case "READY_TO_SHIP":
-    case "SHIPPED":
-      return "text-zinc-900 bg-zinc-50 border-zinc-200"; // Logistik (Warna Norvine)
-    case "COMPLETED":
-      return "text-emerald-600 bg-emerald-50 border-emerald-100"; // Selesai
-    case "CANCELLED":
-    case "EXPIRED":
-    case "FAILED":
-      return "text-red-600 bg-red-50 border-red-100"; // Gagal/Batal
-    case "REFUNDED":
-      return "text-purple-600 bg-purple-50 border-purple-100"; // Dana kembali
-    default:
-      return "text-gray-500 bg-gray-50 border-gray-100";
-  }
+export const capitalizeName = (name: string): string => {
+  if (!name) return "";
+  
+  return name
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
-export const getOrderStatusLabel = (status: OrderStatus | string) => {
-  switch (status) {
-    case "PENDING": return "Menunggu Pembayaran";
-    case "PAID": return "Pembayaran Terverifikasi";
-    case "PROCESSING": return "Sedang Diproses";
-    case "READY_TO_SHIP": return "Siap Dikirim";
-    case "SHIPPED": return "Dalam Pengiriman";
-    case "COMPLETED": return "Pesanan Selesai";
-    case "CANCELLED": return "Dibatalkan";
-    case "EXPIRED": return "Pembayaran Kadaluarsa";
-    case "REFUNDED": return "Dana Dikembalikan";
-    case "FAILED": return "Transaksi Gagal";
-    default: return status;
-  }
+/**
+ * Hanya mengubah huruf paling depan dari seluruh kalimat
+ * Contoh: "halo dunia" -> "Halo dunia"
+ */
+export const capitalizeFirstLetter = (text: string): string => {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
 };
+
+
+/**
+ * Menggabungkan status pembayaran dan pengiriman menjadi satu label yang dimengerti user.
+ */
+export const displayStatus = (trxStatus: PaymentStatus, shipStatus?: ShipmentStatus | null) => {
+  // 1. Cek status pembayaran (Prioritas Utama)
+  if (trxStatus === "PENDING") return "Menunggu Pembayaran";
+  if (trxStatus === "EXPIRED") return "Pembayaran Kedaluwarsa";
+  if (trxStatus === "CANCELLED") return "Pesanan Dibatalkan";
+  if (trxStatus === "REFUNDED") return "Dana Dikembalikan";
+
+  // 2. Jika sudah PAID, baru tampilkan status logistik (Shipment)
+  if (trxStatus === "PAID") {
+    if (!shipStatus) return "Pembayaran Berhasil"; // Fallback jika data shipment belum ke-load
+
+    switch (shipStatus) {
+      case "PENDING": return "Pesanan Dibayar (Menunggu Verifikasi)";
+      case "PROCESSING": return "Pesanan Sedang Dikemas";
+      case "READY_TO_SHIP": return "Siap Dikirim (Menunggu Kurir)";
+      case "SHIPPED": return "Dalam Pengiriman";
+      case "DELIVERED": return "Pesanan Selesai";
+      case "FAILED": return "Gagal Dikirim";
+      default: return "Diproses";
+    }
+  }
+
+  return "Status Tidak Diketahui";
+};
+

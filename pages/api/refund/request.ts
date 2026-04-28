@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
-import { OrderStatus } from '@/generated/prisma/enums';
+import { PaymentStatus } from '@/generated/prisma/enums';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 1. Validasi Kepemilikan & Status (Wajib PAID)
     const transaction = await prisma.transaction.findFirst({
-      where: { id: transactionId, userId, status: OrderStatus.PAID }
+      where: { id: transactionId, userId, status: PaymentStatus.PAID }
     });
 
     if (!transaction) {

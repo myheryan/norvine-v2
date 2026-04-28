@@ -40,8 +40,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             createdAt: 'desc'
           }
         },
-
-        // Load data refund jika ada (untuk tombol rincian pengembalian)
         refundRequest: true,
       }
     });

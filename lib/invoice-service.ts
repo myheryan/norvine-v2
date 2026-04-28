@@ -80,7 +80,7 @@ export const sendInvoiceEmail = async (to: string, order: any) => {
 
         <div style="margin-top: 40px; padding: 20px; border: 1px solid #eee; font-size: 11px; color: #777; border-radius: 0px;">
           <p style="margin: 0 0 8px; font-weight: bold; color: #000; text-transform: uppercase; letter-spacing: 1px;">Alamat Pengiriman:</p>
-          <p style="margin: 0; line-height: 1.5; text-transform: uppercase;">${order.shipment.fullAddress}</p>
+          <p style="margin: 0; line-height: 1.5; text-transform: uppercase;">${order.shippingAddress?.fullAddress}</p>
         </div>
       </div>
 

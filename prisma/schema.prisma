@@ -7,7 +7,43 @@ datasource db {
   provider = "postgresql"
 }
 
+// --- ENUMS ---
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  CANCELLED
+  EXPIRED
+  REFUNDED 
+  FAILED
+}
+
+enum ShipmentStatus {
+  PENDING        
+  PAID
+  PROCESSING     
+  READY_TO_SHIP  
+  SHIPPED        
+  DELIVERED      
+  REFUNDED
+  CANCELLED
+  FAILED         
+}
+
+enum ActionStatus {
+  PENDING
+  APPROVED
+  REFUNDED
+  REJECTED
+}
+
+enum PrintStatus {
+  NOT_PRINTED
+  PRINTED
+}
+
 // --- USER & AUTH ---
+
 model User {
   id               String    @id @default(cuid())
   email            String?   @unique
@@ -19,24 +55,21 @@ model User {
   birth            DateTime?
   emailVerified    DateTime?
   
-  // Auth & Session
   lastLoginAt      DateTime? @default(now())
   resetToken       String?   @unique
   resetTokenExpiry DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime? @default(now()) @updatedAt
 
-  // Relations
-  accounts           Account[]
-  sessions           Session[]
-  addresses          Address[]
-  cartItems          CartItem[]
-  transactions       Transaction[]
-  orderHistories     OrderHistory[]
-  refundRequests     RefundRequest[]
-  // PERBAIKAN: User bisa punya banyak permintaan pembatalan (List)
-  cancellationRequests CancellationRequest[] 
-  requestGenerates   RequestGenerate[]
+  accounts              Account[]
+  sessions              Session[]
+  addresses             Address[]
+  cartItems             CartItem[]
+  transactions          Transaction[]
+  orderHistories        OrderHistory[]
+  refundRequests        RefundRequest[]
+  cancellationRequests  CancellationRequest[] 
+  requestGenerates      RequestGenerate[]
 }
 
 model Address {
@@ -85,16 +118,8 @@ model Session {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model VerificationToken {
-  id         String   @id @default(cuid())
-  identifier String   @unique
-  token      String
-  expires    DateTime
-  attempts   Int      @default(0)
-  lastSent   DateTime @default(now())
-}
-
 // --- PRODUCT & INVENTORY ---
+
 model Product {
   id                   String   @id @map("key")
   regNumber            String?
@@ -118,9 +143,9 @@ model Product {
 
   variants   ProductVariant[]
   orderItems OrderItem[]
-  promos     Promo[]
-  categories Category[]       @relation("ProductCategories")
-  types      Type[]           @relation("ProductTypes")
+  promos     Promo[]           @relation("ProductPromos")
+  categories Category[]        @relation("ProductCategories")
+  types      Type[]            @relation("ProductTypes")
 }
 
 model ProductVariant {
@@ -149,121 +174,102 @@ model StockLog {
   id        String   @id @default(cuid())
   variantId String
   change    Int
-  reason    String // "SALE", "RESTOCK", "RETURN"
+  reason    String 
   createdAt DateTime @default(now())
 
   variant ProductVariant @relation(fields: [variantId], references: [id])
 }
 
-
-model OrderAddress {
-  id              String      @id @default(cuid())
-  transactionId   String      @unique
-  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-
-  // Data Snapshot
-  recipientName  String
-  recipientPhone String
-  fullAddress    String
-  province       String
-  city           String
-  district       String
-  postalCode     String
-  
-  createdAt      DateTime    @default(now())
-}
-
-
-
 // --- TRANSACTION & LOGISTICS ---
+
 model Transaction {
-  id              String      @id @default(cuid())
-  invoice         String      @unique
+  id              String        @id @default(cuid())
+  invoice         String        @unique
   userId          String
-  status          OrderStatus @default(PENDING)
+  status          PaymentStatus @default(PENDING) // Status Keuangan
   notes           String?
   
-  // Amounts
-  subtotal        Int         @default(0)
-  discount        Int         @default(0)
-  shippingCost    Int         @default(0)
-  insuranceCost   Int         @default(0)
-  taxAmount       Int         @default(0)
-  serviceFee      Int         @default(0)
-  totalAmount     Int         @default(0)
-
-  shippingAddress OrderAddress?
-  waybill         String? 
+  subtotal        Int           @default(0)
+  discount        Int           @default(0)
+  shippingCost    Int           @default(0)
+  insuranceCost   Int           @default(0)
+  taxAmount       Int           @default(0)
+  serviceFee      Int           @default(0)
+  totalAmount     Int           @default(0)
 
   paymentMethod   String
-  midtransOrderId String?      @unique
+  midtransOrderId String?       @unique
   bankName        String?
   vaNumber        String?
   paymentCode     String?
   qrUrl           String?
-  deepLink        String?
   paymentExpiry   DateTime?
   rawPaymentRes   Json?
 
-  promoId   Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  promoId         Int?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
-  user     User            @relation(fields: [userId], references: [id])
-  promo    Promo?          @relation(fields: [promoId], references: [id])
-  items    OrderItem[]
-  history  OrderHistory[]
-  shipment Shipment?  
-  refundRequest RefundRequest?
+  user            User          @relation(fields: [userId], references: [id])
+  promo           Promo?        @relation(fields: [promoId], references: [id])
+  items           OrderItem[]
+  history         OrderHistory[]
+  shipment        Shipment?  
+  shippingAddress OrderAddress?
+  refundRequest   RefundRequest?
   cancellationRequest CancellationRequest?
   
   @@index([userId])
   @@index([status])
 }
 
-
-model Shipment {
+model OrderAddress {
   id              String      @id @default(cuid())
   transactionId   String      @unique
   transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
-  // Data Identitas Pengiriman
-  isInsurance    Boolean  @default(false)
-  insuranceAmount Int      @default(0)
-  awbNumber      String?     @unique // No Resi / STT
-  courierCode    String     
-  courierService String      
+  recipientName   String
+  recipientPhone  String
+  fullAddress     String
+  province        String
+  city            String
+  district        String
+  postalCode      String
+  createdAt       DateTime    @default(now())
+}
+
+model Shipment {
+  id              String         @id @default(cuid())
+  transactionId   String         @unique
+  transaction     Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  status          ShipmentStatus @default(PENDING) // Status Logistik
+  isInsurance     Boolean        @default(false)
+  insuranceAmount Int            @default(0)
+  awbNumber       String?        @unique 
+  courierCode     String
+  courierService  String
   
-  // Data Teknis Rute
   destination     String? 
   originCode      String?   
-  destinationCode String?   
-  ursaCode        String?   
-
-  // Operasional
-  status          String      @default("PENDING")
-  weight          Float       @default(0)
-  apiPayload      Json?       
-
+  weight          Float          @default(0)
+  apiPayload      Json?
+  
   printStatus     PrintStatus    @default(NOT_PRINTED)
   printCount      Int            @default(0) 
-  firstPrintedAt  DateTime?     
-  lastPrintedAt   DateTime?      
-  
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model OrderItem {
-  id              String  @id @default(cuid())
+  id              String   @id @default(cuid())
   transactionId   String
   productId       String
   variantId       String?
-  quantity        Int     @default(1)
+  quantity        Int      @default(1)
   priceAtBuy      Int
-  weightAtBuy      Float?
-  dimensionsAtBuy Json?
-  createdAt        DateTime @default(now())
+  weightAtBuy     Float?
+  createdAt       DateTime @default(now())
 
   transaction Transaction     @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   product     Product         @relation(fields: [productId], references: [id])
@@ -271,16 +277,17 @@ model OrderItem {
 }
 
 model OrderHistory {
-  id            String      @id @default(cuid())
+  id            String         @id @default(cuid())
   transactionId String
-  status        OrderStatus
+  status        String
   notes         String?
   updatedById   String?
-  createdAt     DateTime    @default(now())
+  createdAt     DateTime       @default(now())
 
   transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
   updatedBy   User?       @relation(fields: [updatedById], references: [id])
 }
+
 
 model Promo {
   id          Int       @id @default(autoincrement())
@@ -297,23 +304,11 @@ model Promo {
   endDate     DateTime?
   createdAt   DateTime  @default(now())
 
-  applicableProducts Product[]
+  applicableProducts Product[]     @relation("ProductPromos")
   transactions        Transaction[]
 
   @@index([status, startDate, endDate])
   @@index([code])
-}
-
-model Category {
-  id       String    @id
-  name     String
-  products Product[] @relation("ProductCategories")
-}
-
-model Type {
-  id       String    @id
-  name     String
-  products Product[] @relation("ProductTypes")
 }
 
 model CartItem {
@@ -330,14 +325,16 @@ model CartItem {
   @@unique([userId, variantId])
 }
 
-model ShippingProvider {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique // "LION_PARCEL"
-  name      String
-  isActive  Boolean  @default(true)
-  apiKey    String?
-  config    Json?    // e.g., origin_postal_code
-  updatedAt DateTime @updatedAt
+model Category {
+  id       String    @id
+  name     String
+  products Product[] @relation("ProductCategories")
+}
+
+model Type {
+  id       String    @id
+  name     String
+  products Product[] @relation("ProductTypes")
 }
 
 model Warehouse {
@@ -345,18 +342,28 @@ model Warehouse {
   name            String   
   contactName     String   
   phoneNumber     String   
-  address         String   
-  
+  fullAddress         String   
   province        String
   city            String
   district        String
   postalCode      String
-  
   lionOriginCode  String?
-  
   isDefault       Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model RequestGenerate {
+  id        Int      @id @default(autoincrement())
+  userId    String
+  name      String
+  url       String
+  quantity  Int
+  createdAt DateTime @default(now())
+
+  header        Header?
+  serialNumbers SerialNumber[]
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Header {
@@ -376,30 +383,15 @@ model SerialNumber {
 }
 
 model Check {
-  id             Int          @id @default(autoincrement())
+  id             Int      @id @default(autoincrement())
   serialNumberId Int
   city           String
-  county         String
-  district       String
   subdistrict    String
   lat            Decimal
   long           Decimal
-  createdAt      DateTime     @default(now())
+  createdAt      DateTime @default(now())
 
   serialNumber SerialNumber @relation(fields: [serialNumberId], references: [id], onDelete: Cascade)
-}
-
-model RequestGenerate {
-  id        Int      @id @default(autoincrement())
-  userId    String
-  name      String
-  url       String
-  quantity  Int
-  createdAt DateTime @default(now())
-
-  header        Header?
-  serialNumbers SerialNumber[]
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model RefundRequest {
@@ -411,50 +403,28 @@ model RefundRequest {
   amount        Int
   reason        String
   status        ActionStatus @default(PENDING)
-  adminNotes    String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 }
 
 model CancellationRequest {
-  id            String      @id @default(cuid())
-  transactionId String      @unique
-  transaction   Transaction @relation(fields: [transactionId], references: [id])
+  id            String       @id @default(cuid())
+  transactionId String       @unique
+  transaction   Transaction  @relation(fields: [transactionId], references: [id])
   userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  
-  reason        String      // Alasan pembatalan
-  amount        Int         // Total yang harus dikembalikan ke user
+  user          User         @relation(fields: [userId], references: [id])
+  reason        String
+  amount        Int
   status        ActionStatus @default(PENDING)
-  adminNotes    String?     // Catatan admin jika menolak/menyetujui
-  
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
-enum ActionStatus {
-  PENDING
-  APPROVED
-  REFUNDED
-  REJECTED
-}
-
-
-
-enum PrintStatus {
-  NOT_PRINTED
-  PRINTED
-}
-
-enum OrderStatus {
-  PENDING
-  PAID
-  PROCESSING     
-  READY_TO_SHIP  
-  SHIPPED
-  COMPLETED
-  CANCELLED
-  EXPIRED
-  REFUNDED
-  FAILED
+model VerificationToken {
+  id         String   @id @default(cuid())
+  identifier String   @unique
+  token      String
+  expires    DateTime
+  attempts   Int      @default(0)
+  lastSent   DateTime @default(now())
 }

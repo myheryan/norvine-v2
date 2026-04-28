@@ -205,8 +205,6 @@ export default function CheckoutPage() {
         notes,
         grossAmount: total,
         useInsurance,
-        
-        // Data untuk tabel OrderAddress
         recipientName: address.recipientName,
         recipientPhone: address.recipientPhone,
         addressSnapshot: {
@@ -216,8 +214,6 @@ export default function CheckoutPage() {
           province: address.province,
           postalCode: address.postalCode
         },
-
-        // Data untuk tabel Shipment
         shippingDetails: {
           courierCode: 'LION',
           courierService: selectedRate.product, 

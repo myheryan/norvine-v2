@@ -4,15 +4,15 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/router";
 import { 
   FiChevronLeft, FiTruck, 
-  FiCreditCard, FiInfo, FiCheck, FiPackage, FiX, FiClock 
+  FiCreditCard, FiCheck, FiPackage, FiX, FiClock, 
+  FiInfo
 } from "react-icons/fi";
 import { 
   FaFileInvoiceDollar, FaBox,
   FaStickyNote
 } from "react-icons/fa";
-import Image from "next/image";
 import { toast } from "sonner";
-import { formatPhoneNumber, formatRp, getCloudinaryImage } from "@/lib/utils";
+import { formatRp, displayStatus, formatPhoneNumber } from "@/lib/utils"; // Pastikan displayStatus sudah di-export
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import OrderItemsDetail from "@/components/order/OrderItemsDetail";
 
@@ -78,36 +78,76 @@ export default function OrderDetailPage() {
     }
   };
 
+
+  useEffect(() => {
+    if (!router.isReady || !id) return;
+    fetchOrder();
+  }, [id, router.isReady]);
+
   if (loading) return <LoadingScreen />;
   if (!order) return <div className="h-screen flex items-center justify-center font-bold text-gray-600 uppercase tracking-widest">TRANSACTION NOT FOUND</div>;
 
+  // --- LOGIKA STATUS BARU ---
   const isFailed = order.status === "EXPIRED" || order.status === "CANCELLED";
-  const isTracking = ["PENDING", "PAID", "READY_TO_SHIP", "COMPLETED"].includes(order.status);
-  const isRefunding = !!order.refundRequest;
+  const isPaid = order.status === "PAID";
+  const shipment = order.shipment;
 
-  // LOGIKA STEPPER DINAMIS (ORDER VS REFUND)
-  const steps = isRefunding 
-    ? [
+  // Pengecekan Request (Pembatalan vs Retur)
+  const isCancellation = !!order.cancellationRequest; // Sebelum kirim
+  const isRefunding = !!order.refundRequest; // Setelah terima/kirim
+
+  // 1. LOGIKA STEPPER DINAMIS
+  const getSteps = () => {
+    // Jika ada request pembatalan (Cancellation)
+    if (isCancellation) {
+      return [
         { label: "Diajukan", icon: <FaStickyNote />, active: true },
-        { label: "Ditinjau", icon: <FiClock />, active: ["PENDING", "APPROVED", "COMPLETED"].includes(order.refundRequest.status) },
-        { label: "Selesai", icon: <FiCheck />, active: order.refundRequest.status === "COMPLETED" },
-      ]
-    : [
-        { label: "Pesanan Dibuat", icon: <FaFileInvoiceDollar />, status: "PENDING", active: true },
-        { label: "Pesanan Dibayar", icon: <FiCreditCard />, status: "PAID", active: !["PENDING"].includes(order.status) && !isFailed },
-        { label: "Diproses", icon: <FiPackage />, status: "READY_TO_SHIP", active: ["READY_TO_SHIP", "SHIPPED", "COMPLETED"].includes(order.status) },
-        { label: "Pesanan Dikirim", icon: <FiTruck />, status: "SHIPPED", active: ["SHIPPED", "COMPLETED"].includes(order.status) },
-        { label: "Pesanan Selesai", icon: <FaBox />, status: "COMPLETED", active: order.status === "COMPLETED" },
+        { label: "Ditinjau", icon: <FiClock />, active: ["PENDING", "APPROVED"].includes(order.cancellationRequest.status) },
+        { label: "Selesai", icon: <FiCheck />, active: order.cancellationRequest.status === "REFUNDED" },
       ];
+    }
 
+    // Jika pesanan Gagal/Expired (Bukan karena request)
+    if (isFailed) {
+      return [
+        { label: "Pesanan Dibuat", icon: <FaFileInvoiceDollar />, active: true },
+        { label: "Dibatalkan", icon: <FiX />, active: true, color: "text-red-500" },
+      ];
+    }
+
+    return [
+      { 
+        label: "Dibuat", 
+        icon: <FaFileInvoiceDollar />, 
+        active: true 
+      },
+      { 
+        label: "Dibayar", 
+        icon: <FiCreditCard />, 
+        active: isPaid || order.status === "REFUNDED" 
+      },
+      { 
+        label: "Diproses", 
+        icon: <FiPackage />, 
+        active: isPaid && ["PROCESSING", "READY_TO_SHIP", "SHIPPED", "DELIVERED"].includes(shipment?.status) 
+      },
+      { 
+        label: "Dikirim", 
+        icon: <FiTruck />, 
+        active: isPaid && ["SHIPPED", "DELIVERED"].includes(shipment?.status) 
+      },
+      { 
+        label: "Selesai", 
+        icon: <FaBox />, 
+        active: shipment?.status === "DELIVERED" 
+      },
+    ];
+  };
+
+  const steps = getSteps();
   const activeCount = steps.filter(s => s.active).length;
-  const progressWidth = ((activeCount - 1) / (steps.length - 1)) * 100;
-  const failedSteps = [
-  { label: "Pesanan dibuat", icon: <FaFileInvoiceDollar />, active: true },
-  { label: "Pesanan dibatalkan", icon: <FiX />, active: true },
-];
+  const progressWidth = steps.length > 1 ? ((activeCount - 1) / (steps.length - 1)) * 100 : 0;
 
-const failedProgressWidth = 100;
 
   return (
     <div className="min-h-screen md:pt-3">
@@ -123,7 +163,7 @@ const failedProgressWidth = 100;
 
       <div className="max-w-4xl mx-auto mt-0.5 space-y-0.5">
         
-        {!isFailed && isTracking && (
+        {!isFailed && (
           <div className="bg-white p-6 md:p-10 flex justify-between relative overflow-hidden">
             <div className="absolute top-[44px] md:top-[75px] left-[12%] right-[12%] h-[4px] bg-gray-100 rounded-full" />
             <div 

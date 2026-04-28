@@ -119,7 +119,7 @@ export default function AddressPage({ addresses }: { addresses: any[] }) {
             addresses.map((address) => (
               <div 
                 key={address.id} 
-                className={`group bg-white p-3 border-t-1 border-slate-300 transition-all duration-300`}
+                className={`group bg-white px-5 py-3 border-t-1 border-slate-300 transition-all duration-300`}
               >
                 <div className="flex justify-between items-start">
                   <div className="space-y-1 divide-x-2 divide-amber-700 divide-y">

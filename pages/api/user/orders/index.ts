@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import prisma from "@/lib/prisma";
-import { OrderStatus } from "@/generated/prisma/enums";
+import { PaymentStatus, ShipmentStatus } from "@/generated/prisma/enums";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
@@ -15,11 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const now = new Date();
 
-    // 1. CARI PESANAN YANG SEHARUSNYA EXPIRED
+    // 1. CARI PESANAN YANG SEHARUSNYA EXPIRED (Berdasarkan PaymentStatus)
     const expiredOrders = await prisma.transaction.findMany({
       where: {
         userId: userId,
-        status: OrderStatus.PENDING,
+        status: PaymentStatus.PENDING, // Menunggu pembayaran
         paymentExpiry: { lt: now },
       },
       select: { id: true },
@@ -30,18 +30,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const expiredIds = expiredOrders.map((o) => o.id);
 
       await prisma.$transaction([
-        // Update status ke EXPIRED
+        // Update PaymentStatus ke EXPIRED
         prisma.transaction.updateMany({
           where: { id: { in: expiredIds } },
-          data: { status: OrderStatus.EXPIRED },
+          data: { status: PaymentStatus.EXPIRED },
         }),
-        // Catat otomatis ke OrderHistory
+        // Catat otomatis ke OrderHistory (History merekam ShipmentStatus)
+        // Jika expired, biasanya status shipment tidak ada atau FAILED
         prisma.orderHistory.createMany({
           data: expiredIds.map((id) => ({
             transactionId: id,
-            status: OrderStatus.EXPIRED,
-            notes: "Dibatalkan otomatis oleh sistem (Waktu pembayaran habis)",
-            // updatedById dikosongkan karena sistem yang membatalkan
+            status: ShipmentStatus.FAILED, // Atau status logistik relevan lainnya
+            notes: "Sistem: Waktu pembayaran habis (Expired)",
           })),
         }),
       ]);
@@ -51,9 +51,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const transactions = await prisma.transaction.findMany({
       where: {
         userId: userId,
-        ...(req.query.status && req.query.status !== "ALL" ? { status: req.query.status as any } : {}),
+        // Filter sederhana berdasarkan PaymentStatus jika query dikirim
+        ...(req.query.status && req.query.status !== "ALL" 
+          ? { status: req.query.status as PaymentStatus } 
+          : {}),
       },
       include: {
+        shipment: true, // WAJIB: Agar displayStatus() di frontend bekerja
         cancellationRequest: true,
         refundRequest: true,
         items: {
@@ -63,10 +67,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       },
-      orderBy: { updatedAt: "desc" }, 
+      orderBy: { createdAt: "desc" }, // Lebih stabil menggunakan createdAt untuk urutan riwayat
     });
 
-    res.setHeader('Cache-Control', 'no-store');
+    // Menghindari caching agar data status selalu terbaru
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.status(200).json(transactions);
   } catch (error) {
     console.error("ERROR_FETCH_ORDERS:", error);

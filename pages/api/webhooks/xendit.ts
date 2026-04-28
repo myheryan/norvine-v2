@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from "@/lib/prisma";
-import { OrderStatus } from '@/generated/prisma/enums';
+import { PaymentStatus } from '@/generated/prisma/enums';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
@@ -43,24 +43,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Idempotency: Jangan proses jika status sudah PAID atau COMPLETED
-    if (currentOrder.status === OrderStatus.PAID || currentOrder.status === OrderStatus.COMPLETED) {
+    if (currentOrder.status === PaymentStatus.PAID ) {
       return res.status(200).json({ status: 'Already Processed' });
     }
 
-    let newStatus: OrderStatus = currentOrder.status;
+    let newStatus: PaymentStatus = currentOrder.status;
     let finalNote = "";
 
-    // 3. Pemetaan Status Xendit ke OrderStatus Norvine
+    // 3. Pemetaan Status Xendit ke PaymentStatus Norvine
     if (xenditStatus === 'SUCCEEDED' || xenditStatus === 'COMPLETED') {
-      newStatus = OrderStatus.PAID;
+      newStatus = PaymentStatus.PAID;
       finalNote = `Pembayaran QRIS via ${data.payment_detail?.source || 'Xendit'} berhasil diterima.`;
     } 
     else if (xenditStatus === 'EXPIRED') {
-      newStatus = OrderStatus.EXPIRED;
+      newStatus = PaymentStatus.EXPIRED;
       finalNote = "Batas waktu pembayaran habis.";
     } 
     else if (xenditStatus === 'FAILED') {
-      newStatus = OrderStatus.FAILED;
+      newStatus = PaymentStatus.FAILED;
       finalNote = "Pembayaran QRIS gagal diproses.";
     }
 
@@ -82,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       // B. Update Status Shipment (Jika Lunas)
-      if (newStatus === OrderStatus.PAID && currentOrder.shipment) {
+      if (newStatus === PaymentStatus.PAID && currentOrder.shipment) {
         await tx.shipment.update({
           where: { transactionId: currentOrder.id },
           data: { status: 'READY_TO_SHIP' } // Mengubah status string di model Shipment
@@ -98,11 +98,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      // Definisikan array-nya dengan tipe OrderStatus[]
-    const cancellationStatuses: OrderStatus[] = [
-      OrderStatus.EXPIRED, 
-      OrderStatus.FAILED, 
-      OrderStatus.CANCELLED
+      // Definisikan array-nya dengan tipe PaymentStatus[]
+    const cancellationStatuses: PaymentStatus[] = [
+      PaymentStatus.EXPIRED, 
+      PaymentStatus.FAILED, 
+      PaymentStatus.CANCELLED
     ];
 
     // Gunakan .includes tanpa error
@@ -130,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       // E. Logika Audit Stok (Jika Lunas)
-      if (newStatus === OrderStatus.PAID) {
+      if (newStatus === PaymentStatus.PAID) {
         for (const item of currentOrder.items) {
           if (item.variantId) {
             await tx.stockLog.create({

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
 import { Loader2, X, MapPin, ChevronDown, CheckCircle2, CheckIcon } from "lucide-react";
-import { formatPhoneNumber } from "@/lib/utils";
+import { capitalizeName, formatPhoneNumber } from "@/lib/utils";
 
 interface RegionItem {
   id: string;
@@ -122,7 +122,7 @@ export default function AddressManager({ isOpen, onClose, onSuccess, initialData
   const handleManualSubmit = async () => {
     if (!formData.recipient || !formData.phone || !formData.fullAddress || !geoIds.lionDistrictId) {
       toast.error("Mohon lengkapi wilayah hingga tervalidasi (Checkmark aktif).");
-      return;
+      return null;
     }
 
     setIsLoading(true);
@@ -170,7 +170,7 @@ export default function AddressManager({ isOpen, onClose, onSuccess, initialData
                 placeholder="Nama Lengkap"
                 className="w-full h-11 px-3 border border-zinc-200 text-sm focus:border-black outline-none transition-all" 
                 value={formData.recipient} 
-                onChange={e => setFormData({...formData, recipient: e.target.value})} 
+                onChange={e => setFormData({...formData, recipient: capitalizeName(e.target.value)})} 
               />
             </div>
             <div>
@@ -301,11 +301,16 @@ export default function AddressManager({ isOpen, onClose, onSuccess, initialData
 
           {/* Submit */}
           <button 
+            type="button"
             onClick={handleManualSubmit}
-            disabled={isLoading || !geoIds.lionDistrictId}
+            disabled={isLoading || !geoIds.lionDistrictId || !formData.postalCode}
             className="w-full py-4 bg-black text-white text-sm hover:bg-zinc-900 disabled:bg-zinc-100 disabled:text-zinc-300 transition-all active:scale-[0.98]"
           >
-            {isLoading ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Simpan Alamat"}
+            {isLoading ? (
+              <Loader2 className="animate-spin mx-auto" size={16} />
+            ) : (
+              "Simpan Alamat"
+            )}
           </button>
         </div>
       </div>
