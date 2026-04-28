@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from '@/lib/auth';
+import { authOptions } from '@/pages/api/auth/[...nextauth]'; // Pastikan path authOptions benar
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query; 
@@ -16,30 +16,48 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: "Silakan login kembali." });
     }
 
-    // Ambil ID User dari session
     const userId = (session.user as any).id;
 
-    // Cari transaksi berdasarkan invoice
     const transaction = await prisma.transaction.findUnique({
-      where: { invoice: String(id), userId: userId },
+      where: { 
+        invoice: String(id), 
+        userId: userId 
+      },
       include: {
-        // PERBAIKAN: Tambahkan shippingAddress agar alamat muncul
+        // 1. Load Alamat Snapshot
         shippingAddress: true, 
         
-        // Load items beserta detail produk & variannya
+        // 2. Load Data Pengiriman (Wajib untuk displayStatus & No Resi)
+        shipment: true,
+
+        // 3. Load Detail Item, Produk, dan Varian
         items: {
           include: {
-            product: true,
-            variant: true,
+            product: {
+                select: {
+                    name: true,
+                    thumbnailUrl: true,
+                }
+            },
+            variant: {
+                select: {
+                    name: true
+                }
+            },
           }
         },
 
-        // Load history untuk log status (diurutkan dari yang terbaru)
+        // 4. Load Riwayat Status (Logistik & Pembayaran)
         history: {
           orderBy: {
             createdAt: 'desc'
           }
         },
+
+        // 5. Load Permintaan Pembatalan (Cancellation)
+        cancellationRequest: true,
+
+        // 6. Load Permintaan Retur (Refund)
         refundRequest: true,
       }
     });
@@ -48,16 +66,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: "Pesanan tidak ditemukan." });
     }
 
-    // Keamanan: Pastikan user hanya bisa melihat pesanan miliknya sendiri
+    // Double check keamanan (opsional karena findUnique sudah pakai userId)
     if (transaction.userId !== userId) {
       return res.status(403).json({ error: "Akses ditolak." });
     }
 
-    // Kirim data ke frontend
+    // Set Header untuk menghindari caching data status yang sensitif
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    
     return res.status(200).json(transaction);
 
   } catch (error) {
-    console.error("Fetch Order Error:", error);
+    console.error("FETCH_ORDER_DETAIL_ERROR:", error);
     return res.status(500).json({ error: "Gagal mengambil data pesanan." });
   }
 }
