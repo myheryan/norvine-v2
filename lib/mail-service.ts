@@ -23,7 +23,7 @@ export const sendEmail = async ({ to, subject, html }: MailOptions) => {
       Body: { Html: { Data: html } },
       Subject: { Data: subject },
     },
-    Source: "norvine <no-reply@norvine.co.id>", // Nama pengirim Norvine
+    Source: "Norvine Official <no-reply@norvine.co.id>", // Nama pengirim Norvine
   });
 
   try {
