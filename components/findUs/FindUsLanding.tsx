@@ -138,7 +138,7 @@ export default function FindUsLanding() {
                   <h2 className="text-xl font-bold tracking-widest uppercase text-slate-800">NORVINE Online Store</h2>
                 </div>
                 <p className="text-base text-slate-500 max-w-xl leading-relaxed">
-                  Dapatkan produk Norvine yang asli dan terjamin kualitasnya melalui official store kami di berbagai platform e-commerce terkemuka.
+                  Dapatkan produk Norvine yang asli dan terjamin kualitasnya melalui official store kami di berbagai platform e-commerce pilihan anda.
                 </p>
               </div>
               
