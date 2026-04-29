@@ -13,7 +13,7 @@ import OrderSummary from '@/components/checkout/OrderSummary'
 import CheckoutAddressSection from '@/components/checkout/CheckoutAddressSection'
 import PromoModal from '@/components/checkout/PromoModal'
 import { NORVINE_CONFIG } from '@/types/norvine-default'
-import { WeightToGram } from '@/lib/utils'
+import { weightGramToKg } from '@/lib/utils'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 
 export default function CheckoutPage() {
@@ -108,7 +108,8 @@ export default function CheckoutPage() {
   const logistics = useMemo(() => {
     return orderData.items.reduce((acc, item) => {
       const qty = Number(item.quantity) || 1;
-      const convertedWeight = Number(WeightToGram(item.weight));
+      const convertedWeight = Number(item.weight);
+
       const itemWeight = convertedWeight > 0 ? convertedWeight : NORVINE_CONFIG.DEFAULT_WEIGHT; 
 
       const dim = item.dimensions || {};
@@ -121,8 +122,7 @@ export default function CheckoutPage() {
       acc.maxHeight = Math.max(acc.maxHeight, currentHeight);
       acc.maxLength = Math.max(acc.maxLength, currentLength);
       acc.totalWidth += currentWidth * qty;
-      acc.totalWeight += itemWeight * qty;
-
+      acc.totalWeight += weightGramToKg(itemWeight * qty);
       return acc;
     }, { totalWeight: 0, totalWidth: 0, maxLength: 0, maxHeight: 0 });
   }, [orderData.items]); 

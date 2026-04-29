@@ -197,10 +197,12 @@ export const formatPhoneNumber = (value: any) => {
   return `${countryCode} ${parts.join(' ')}`;
 };
 
-export const WeightToGram = (product_weight: any) => {
-    return product_weight / 1000;
-}
+export const weightGramToKg = (product_weight: any): number => {
+  const weight = parseFloat(product_weight) || 0;
+  const converted = weight / 1000;
 
+  return Number(converted.toFixed(2));
+}
 
 
 export const getStatusColor = (status: ActionStatus | string) => {

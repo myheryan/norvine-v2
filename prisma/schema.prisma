@@ -20,7 +20,6 @@ enum PaymentStatus {
 
 enum ShipmentStatus {
   PENDING        
-  PAID
   PROCESSING     
   READY_TO_SHIP  
   SHIPPED        
@@ -251,7 +250,9 @@ model Shipment {
   courierService  String
   
   destination     String? 
-  originCode      String?   
+  originCode      String? 
+  destinationCode String?
+  ursaCode        String?
   weight          Float          @default(0)
   apiPayload      Json?
   
