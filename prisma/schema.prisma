@@ -258,6 +258,7 @@ model Shipment {
   
   printStatus     PrintStatus    @default(NOT_PRINTED)
   printCount      Int            @default(0) 
+  lastPrintedAt   DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
