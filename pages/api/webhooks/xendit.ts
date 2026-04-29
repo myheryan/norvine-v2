@@ -81,13 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       });
 
-      // B. Update Status Shipment (Jika Lunas)
-      if (newStatus === PaymentStatus.PAID && currentOrder.shipment) {
-        await tx.shipment.update({
-          where: { transactionId: currentOrder.id },
-          data: { status: 'PROCESSING' } // Mengubah status string di model Shipment
-        });
-      }
+
 
       // C. Catat di OrderHistory
       await tx.orderHistory.create({
