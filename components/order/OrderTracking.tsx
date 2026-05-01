@@ -99,7 +99,7 @@ export default function OrderTracking({ history, awbNumber, isLoading }: OrderTr
               <div className="pl-6 pt-2">
                 <button 
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="flex items-center gap-1.5 text-[11px] font-bold text-[#26aa99] hover:text-[#1e8578] transition-colors uppercase tracking-tight"
+                  className="flex items-center gap-1.5 text-[11px] font-bold text-[#26aa99] hover:text-[#1e8578] transition-colors "
                 >
                   {isExpanded ? (
                     <><FiChevronUp size={14} /> Sembunyikan Riwayat</>
