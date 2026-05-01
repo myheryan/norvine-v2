@@ -4,6 +4,7 @@ import Image from "next/image";
 import { FaFileInvoiceDollar } from "react-icons/fa";
 import { displayStatus, formatRp, getCloudinaryImage } from "@/lib/utils";
 import { Copy } from "lucide-react";
+import { toast } from "sonner";
 
 interface OrderItemsDetailProps {
   order: any;
@@ -13,6 +14,13 @@ interface OrderItemsDetailProps {
 
 export default function OrderItemsDetail({ order, isFailed }: OrderItemsDetailProps) {
   if (!order) return null;
+
+    const copyInvoice = (e: React.MouseEvent, inv: string) => {
+    e.preventDefault(); e.stopPropagation();
+    navigator.clipboard.writeText(inv);
+    toast.success("Invoice disalin");
+  };
+
 
   const getStatusStyles = () => {
   // 1. Kondisi Gagal / Batal
@@ -30,7 +38,8 @@ export default function OrderItemsDetail({ order, isFailed }: OrderItemsDetailPr
                 <div className="flex p-2 gap-2 items-center justify-between border-b border-gray-100">
                   <button className="flex items-center gap-2">
                       <span className="text-xs font-semibold">Pesanan : {order.invoice}</span>
-                      <Copy size={12} className="text-gray-600" />
+                      <span className="text-[13px] text-gray-900 font-black flex items-center gap-1 cursor-pointer" onClick={(e) => copyInvoice(e, order.invoice)}
+                    ><Copy size={12} className="text-gray-600" /></span>
                     </button>
                   <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-sm shadow-sm ${getStatusStyles()}`}>
                   { displayStatus(order.status, order.shipment?.status)}
@@ -42,9 +51,9 @@ export default function OrderItemsDetail({ order, isFailed }: OrderItemsDetailPr
                       <Image src={getCloudinaryImage(item.product?.thumbnailUrl || "/placeholder.png", 200, 200)} alt="p" fill className="object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-black text-[15px] truncate">{item.product?.name}</p>
-                      <p className="text-gray-600 text-[11px] mt-1 ">Variasi: {item.variant?.name || "-"}</p>
-                      <p className="text-gray-800 text-[12px] mt-1 font-medium">x{item.quantity}</p>
+                      <p className="text-black text-[15px] truncate">{item.product?.name}</p>
+                      <p className="text-gray-600 text-[11px] ">Variasi: {item.variant?.name || "-"}</p>
+                      <p className="text-gray-800 text-[12px] font-medium">x{item.quantity}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-gray-800 font-bold text-[14px] tabular-nums">{formatRp(item.priceAtBuy)}</p>

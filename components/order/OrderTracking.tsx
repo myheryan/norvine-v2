@@ -32,7 +32,7 @@ export default function OrderTracking({ history, awbNumber, isLoading }: OrderTr
   const hasMore = history?.length > 3;
 
   return (
-    <div className="md:col-span-7 md:border-l border-gray-100 md:pl-8">
+    <div className="md:col-span-7 md:border-l border-gray-100 md:pl-4">
       <div className="flex justify-between items-center mb-4">
         <p className="text-[12px] font-semibold text-gray-600 tracking-wide">
           Status Pesanan

@@ -142,7 +142,7 @@ export default function OrderDetailPage() {
           <button onClick={() => router.back()} className="flex items-center gap-1 text-gray-500 hover:text-black font-medium">
             <FiChevronLeft size={18} /> Kembali
           </button>
-          <span className="text-gray-400">Detail Transaksi</span>
+          <span className="text-black font-semibold">Detail Pesanan</span>
         </div>
       </div>
 
@@ -192,13 +192,13 @@ export default function OrderDetailPage() {
 
         {/* INFO PENGIRIMAN */}
         <div className="bg-white p-3 border-t-4 border-surel">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
             <div className="md:col-span-4">
               <h3 className="text-[14px] font-bold mb-3 flex items-center gap-2">
                 <FiTruck className="text-[#26aa99]" /> Alamat Pengiriman
               </h3>
               <p className="font-bold text-[13px]">{order.shippingAddress?.recipientName}</p>
-              <p className="text-gray-500 text-[12px] mb-2">{formatPhoneNumber(order.shippingAddress?.recipientPhone)}</p>
+              <p className="text-gray-500 text-[12px]">{formatPhoneNumber(order.shippingAddress?.recipientPhone)}</p>
               <p className="text-gray-600 text-[12px] leading-relaxed">
                 {order.shippingAddress?.fullAddress} <br />
                 {order.shippingAddress?.district}, {order.shippingAddress?.city}, {order.shippingAddress?.province}
