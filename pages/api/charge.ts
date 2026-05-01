@@ -201,7 +201,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               weight: Number(shippingDetails.weight),
               isInsurance: useInsurance,
               insuranceAmount: insuranceCost,
-              apiPayload: shippingDetails.dimensions || {}
+              dimensions: shippingDetails.dimensions || {}
             }
           },
 

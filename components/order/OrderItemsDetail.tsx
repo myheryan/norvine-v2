@@ -2,27 +2,39 @@
 
 import Image from "next/image";
 import { FaFileInvoiceDollar } from "react-icons/fa";
-import { formatRp, getCloudinaryImage } from "@/lib/utils";
+import { displayStatus, formatRp, getCloudinaryImage } from "@/lib/utils";
+import { Copy } from "lucide-react";
 
 interface OrderItemsDetailProps {
   order: any;
   isFailed?: boolean;
 }
 
+
 export default function OrderItemsDetail({ order, isFailed }: OrderItemsDetailProps) {
   if (!order) return null;
+
+  const getStatusStyles = () => {
+  // 1. Kondisi Gagal / Batal
+  if (isFailed) return "bg-red-50 text-red-500 border border-red-100";
+  
+  if (order.status === "PAID" || order.status === "COMPLETED") return "bg-emerald-600 text-white";
+  
+  // 5. Default (Pending/Lainnya)
+  return "bg-zinc-900 text-white";
+};
 
   return (
             <div className="bg-white shadow-sm overflow-hidden">
               <div className="divide-y divide-gray-50">
-                <div className="flex p-4 gap-2 items-center justify-between border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <FaFileInvoiceDollar className="text-gray-600" />
-                    <span className="text-xs semibold">ID Pesanan :  {order.invoice}</span>
-                  </div>
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-sm ${isFailed ? "bg-red-100 text-red-400" : "bg-emerald-600 text-white"}`}>
-                    {order.status}
-                  </span>
+                <div className="flex p-2 gap-2 items-center justify-between border-b border-gray-100">
+                  <button className="flex items-center gap-2">
+                      <span className="text-xs font-semibold">Pesanan : {order.invoice}</span>
+                      <Copy size={12} className="text-gray-600" />
+                    </button>
+                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-sm shadow-sm ${getStatusStyles()}`}>
+                  { displayStatus(order.status, order.shipment?.status)}
+                </span>
                 </div>
                 {order.items?.map((item: any) => (
                   <div key={item.id} className="p-3 flex gap-3 items-center">
@@ -93,7 +105,7 @@ export default function OrderItemsDetail({ order, isFailed }: OrderItemsDetailPr
                     <tr>
                       <td colSpan={2} className="pt-4 border-t border-gray-200">
                         <div className="flex justify-end items-center w-full gap-8">
-                          <span className="text-gray-900 font-bold uppercase text-[13px] tracking-widest">
+                          <span className="text-gray-900 font-bold text-lg">
                             Total Pesanan
                           </span>
                           <span className="text-[20px] font-bold text-[#ee4d2d] tracking-tighter leading-none">

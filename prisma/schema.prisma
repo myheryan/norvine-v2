@@ -14,13 +14,13 @@ enum PaymentStatus {
   PAID
   CANCELLED
   EXPIRED
-  REFUNDED 
+  COMPLETED
+  REFUNDED
   FAILED
 }
 
 enum ShipmentStatus {
   PENDING        
-  PROCESSING     
   READY_TO_SHIP  
   SHIPPED        
   DELIVERED      
@@ -249,11 +249,12 @@ model Shipment {
   courierCode     String
   courierService  String
   
-  destination     String? 
+  destination     String 
   originCode      String? 
   destinationCode String?
   ursaCode        String?
   weight          Float          @default(0)
+  dimensions      Json?
   apiPayload      Json?
   
   printStatus     PrintStatus    @default(NOT_PRINTED)
@@ -261,7 +262,25 @@ model Shipment {
   lastPrintedAt   DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+
+  adjustments     ShipmentAdjustment[]
 }
+
+model ShipmentAdjustment {
+  id              String   @id @default(cuid())
+  shipmentId      String
+  shipment        Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  
+  oldWeight       Float
+  newWeight       Float
+  oldShippingCost Int
+  newShippingCost Int
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  @@index([shipmentId])
+}
+
 
 model OrderItem {
   id              String   @id @default(cuid())

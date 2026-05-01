@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
-import { authOptions } from '@/pages/api/auth/[...nextauth]'; // Pastikan path authOptions benar
+import { authOptions } from '@/pages/api/auth/[...nextauth]'; 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query; 
@@ -16,68 +16,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: "Silakan login kembali." });
     }
 
+    // Pastikan pengambilan ID user sesuai dengan konfigurasi session Anda
     const userId = (session.user as any).id;
 
     const transaction = await prisma.transaction.findUnique({
       where: { 
+        // Menggunakan invoice sebagai identifier unik
         invoice: String(id), 
-        userId: userId 
       },
       include: {
-        // 1. Load Alamat Snapshot
         shippingAddress: true, 
-        
-        // 2. Load Data Pengiriman (Wajib untuk displayStatus & No Resi)
         shipment: true,
-
-        // 3. Load Detail Item, Produk, dan Varian
         items: {
           include: {
             product: {
-                select: {
-                    name: true,
-                    thumbnailUrl: true,
-                }
+              select: {
+                name: true,
+                thumbnailUrl: true,
+              }
             },
             variant: {
-                select: {
-                    name: true
-                }
+              select: {
+                name: true
+              }
             },
           }
         },
-
-        // 4. Load Riwayat Status (Logistik & Pembayaran)
+        // Pastikan nama field di schema Prisma adalah 'history'
+        // Jika di schema namanya 'orderHistory', ubah menjadi orderHistory
         history: {
           orderBy: {
             createdAt: 'desc'
           }
         },
-
-        // 5. Load Permintaan Pembatalan (Cancellation)
         cancellationRequest: true,
-
-        // 6. Load Permintaan Retur (Refund)
         refundRequest: true,
       }
     });
 
+    // 1. Cek keberadaan transaksi
     if (!transaction) {
       return res.status(404).json({ error: "Pesanan tidak ditemukan." });
     }
 
-    // Double check keamanan (opsional karena findUnique sudah pakai userId)
+    // 2. Keamanan: Pastikan transaksi ini milik user yang sedang login
     if (transaction.userId !== userId) {
-      return res.status(403).json({ error: "Akses ditolak." });
+      return res.status(403).json({ error: "Akses ditolak. Anda tidak memiliki izin untuk melihat pesanan ini." });
     }
 
-    // Set Header untuk menghindari caching data status yang sensitif
-    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    // 3. Tambahkan header untuk memastikan data selalu fresh (Penting untuk status tracking)
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
     return res.status(200).json(transaction);
 
   } catch (error) {
     console.error("FETCH_ORDER_DETAIL_ERROR:", error);
-    return res.status(500).json({ error: "Gagal mengambil data pesanan." });
+    return res.status(500).json({ error: "Gagal mengambil data pesanan secara internal." });
   }
 }

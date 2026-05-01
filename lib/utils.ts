@@ -198,10 +198,8 @@ export const formatPhoneNumber = (value: any) => {
 };
 
 export const weightGramToKg = (product_weight: any): number => {
-  const weight = parseFloat(product_weight) || 0;
-  const converted = weight / 1000;
-
-  return Number(converted.toFixed(2));
+  // Kalikan 100, bulatkan, lalu bagi 100 untuk mendapatkan 2 angka desimal
+  return Math.round((product_weight / 1000) * 100) / 100;
 }
 
 
@@ -267,8 +265,7 @@ export const displayStatus = (trxStatus: PaymentStatus, shipStatus?: ShipmentSta
     if (!shipStatus) return "Pembayaran Berhasil"; // Fallback jika data shipment belum ke-load
 
     switch (shipStatus) {
-      case "PENDING": return "Pesanan Dibayar (Menunggu Verifikasi)";
-      case "PROCESSING": return "Pesanan Sedang Dikemas";
+      case "PENDING": return "Pesanan Dibayar";
       case "READY_TO_SHIP": return "Siap Dikirim";
       case "SHIPPED": return "Dalam Pengiriman";
       case "DELIVERED": return "Pesanan Selesai";
@@ -280,3 +277,10 @@ export const displayStatus = (trxStatus: PaymentStatus, shipStatus?: ShipmentSta
   return "Status Tidak Diketahui";
 };
 
+ export const toSentenceCase = (str: any) => {
+  if (typeof str !== 'string' || !str) return "";
+
+  const trimmed = str.trim();
+
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+}; 

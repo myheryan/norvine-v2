@@ -114,17 +114,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(200).json(cartItem);
     }
 
-    // --- METHOD: DELETE (Hapus Item) ---
-    if (req.method === 'DELETE') {
-      const { variantId } = req.body;
-      if (!variantId) return res.status(400).json({ message: "Variant ID diperlukan" });
+// --- METHOD: DELETE (Hapus Item) ---
+if (req.method === 'DELETE') {
+  const variantId = req.body?.variantId || req.query?.variantId;
+  if (!variantId) {
+    return res.status(400).json({ message: "Variant ID diperlukan" });
+  }
 
-      await prisma.cartItem.delete({
-        where: { userId_variantId: { userId, variantId } },
-      }).catch(() => null); // Abaikan jika memang sudah tidak ada
+  try {
+    await prisma.cartItem.delete({
+      where: {
+        userId_variantId: {
+          userId: userId, // Pastikan userId didapat dari session/auth sebelumnya
+          variantId: variantId as string,
+        },
+      },
+    });
 
-      return res.status(200).json({ message: "Item dihapus" });
+    return res.status(200).json({ message: "Item berhasil dihapus dari keranjang" });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      return res.status(200).json({ message: "Item sudah tidak ada di keranjang" });
     }
+    throw error; 
+  }
+}
 
     return res.status(405).json({ message: "Method not allowed" });
 
