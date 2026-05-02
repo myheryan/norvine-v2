@@ -58,9 +58,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     let finalNote = "";
 
     // 3. Pemetaan Status Xendit ke PaymentStatus Norvine
-    if (xenditStatus === 'SUCCEEDED' || xenditStatus === 'COMPLETED') {
+    if (xenditStatus === 'SUCCEEDED' || xenditStatus === 'COMPLETED' || currentOrder.status === PaymentStatus.PENDING) {
       newStatus = PaymentStatus.PAID;
       finalNote = `Pembayaran QRIS via ${data.payment_detail?.source || 'Xendit'} berhasil diterima.`;
+
+      try {
+        // Karena currentOrder sudah di-include items & user, bisa langsung dikirim
+        await sendPaymentSuccessEmail(currentOrder as any);
+        console.log(`[EMAIL] Success sent to ${currentOrder.user.email} for ${currentOrder.invoice}`);
+      } catch (emailError) {
+        // Jangan throw error agar webhook tidak gagal hanya karena email delay
+        console.error("[EMAIL_ERROR]:", emailError);
+      }
     } 
     else if (xenditStatus === 'EXPIRED') {
       newStatus = PaymentStatus.EXPIRED;
@@ -87,8 +96,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updatedAt: new Date()
         }
       });
-
-
 
       // C. Catat di OrderHistory
       await tx.orderHistory.create({
@@ -145,18 +152,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
     });
-
-   
-    if (newStatus === PaymentStatus.PAID) {
-      try {
-        // Karena currentOrder sudah di-include items & user, bisa langsung dikirim
-        await sendPaymentSuccessEmail(currentOrder as any);
-        console.log(`[EMAIL] Success sent to ${currentOrder.user.email} for ${currentOrder.invoice}`);
-      } catch (emailError) {
-        // Jangan throw error agar webhook tidak gagal hanya karena email delay
-        console.error("[EMAIL_ERROR]:", emailError);
-      }
-    }
 
     return res.status(200).json({ status: 'OK' });
 
