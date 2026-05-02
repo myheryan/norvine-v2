@@ -221,17 +221,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: { transactionId: transaction.id, status: "PENDING", notes: "Checkout berhasil, menunggu pembayaran." }
       });
 
-      return { transaction, chargeRes, validatedItems };
-    }, { timeout: 35000 }); // Ditambah dikit buat amannya Xendit
+      return { transaction, chargeRes };
+    }, { timeout: 35000 }); 
 
-    const { transaction, validatedItems } = result;
+    const { transaction } = result;
     
-    // 9. ASYNC NOTIFICATION
-    sendInvoiceEmail(session.user?.email as string, {
-      ...transaction,
-      items: validatedItems, 
-    }).catch(err => console.error("Email Error:", err));
-
     return res.status(200).json({
       invoice: transaction.invoice,
       qr_string: result.chargeRes.qr_string,

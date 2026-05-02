@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import prisma from "@/lib/prisma";
 import { PaymentStatus } from '@/generated/prisma/enums';
+import { sendPaymentSuccessEmail } from '@/lib/mail-service';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method Not Allowed' });
@@ -24,16 +25,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // 2. Cari Transaksi berdasarkan Invoice atau QR ID
-    const currentOrder = await prisma.transaction.findFirst({
+        const currentOrder = await prisma.transaction.findFirst({
       where: {
         OR: [
           { invoice: externalId },
-          { midtransOrderId: qrId } // Field ini kita gunakan untuk menyimpan ID Xendit
+          { midtransOrderId: qrId }
         ]
       },
       include: { 
-        items: true,
-        shipment: true 
+        items: { 
+          include: { 
+            product: true, 
+            variant: true 
+          } 
+        },
+        user: true, // WAJIB ADA
+        shippingAddress: true 
       }
     });
 
@@ -139,7 +146,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log(`[XENDIT] Webhook Success: ${currentOrder.invoice} -> ${newStatus}`);
+   
+    if (newStatus === PaymentStatus.PAID) {
+      try {
+        // Karena currentOrder sudah di-include items & user, bisa langsung dikirim
+        await sendPaymentSuccessEmail(currentOrder as any);
+        console.log(`[EMAIL] Success sent to ${currentOrder.user.email} for ${currentOrder.invoice}`);
+      } catch (emailError) {
+        // Jangan throw error agar webhook tidak gagal hanya karena email delay
+        console.error("[EMAIL_ERROR]:", emailError);
+      }
+    }
+
     return res.status(200).json({ status: 'OK' });
 
   } catch (error: any) {
