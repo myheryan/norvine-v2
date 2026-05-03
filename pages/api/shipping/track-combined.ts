@@ -60,6 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       notes: h.notes || `Status: ${h.status}`,
       createdAt: h.createdAt,
       location: "Gudang Norvine",
+
       isInternal: true
     }));
 
@@ -70,6 +71,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: new Date(h.datetime),
       location: h.city,
       isInternal: false,
+      courierCode: h.courierCode,
+      courierService: h.courierService,
       attachment: h.attachment || [] // Foto POD jika ada
     })) || [];
 
@@ -82,9 +85,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({
       invoice: transaction.invoice,
       waybill: stt,
-      current_status: externalData?.current_status || transaction.status,
+      current_status: externalData?.current_status === 'POD' ? 'Pesanan diterima' : externalData?.current_status,
       current_location: externalData?.history?.[0]?.city || "Norvine HQ",
-      courier_name: externalData?.history?.[0]?.courier_name || "Sistem Norvine",
+      courier_name: externalData?.history?.find((h: any) => h.courier_name)?.courier_name || "Sistem Norvine",
+      courierCode:  externalData?.product_type,
+      courierService: externalData?.product_type,
       history: combinedHistory,
     });
 
@@ -93,9 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 }
 
-/**
- * Fungsi Sinkronisasi (Logika POD & Adjustment)
- */
+
 async function syncLogistics(stt: any, sttData: any) {
   const history = sttData.history || [];
   const latestStatus = history[0]; // Biasanya index 0 di Lion Parcel adalah yang terbaru

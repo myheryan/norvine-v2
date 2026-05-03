@@ -1,7 +1,7 @@
 import { GetServerSideProps } from 'next';
 import prisma from '@/lib/prisma';
 import Head from 'next/head';
-import { FiPrinter, FiDownload, FiCheckCircle, FiPackage, FiTruck, FiCreditCard } from 'react-icons/fi';
+import { FiPrinter, FiDownload, FiPackage, FiTruck, FiCreditCard } from 'react-icons/fi';
 
 const formatRp = (n: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { toSentenceCase } from '@/lib/utils';
+import { formatDateTime, toSentenceCase } from '@/lib/utils';
 import React, { useState } from 'react'
 import { FiImage, FiX, FiMaximize2, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 
@@ -32,19 +32,19 @@ export default function OrderTracking({ history, awbNumber, isLoading }: OrderTr
   const hasMore = history?.length > 3;
 
   return (
-    <div className="md:col-span-7 md:border-l border-gray-100 md:pl-4">
+    <div className="md:col-span-8 md:border-l border-gray-100 md:pl-4">
       <div className="flex justify-between items-center mb-4">
-        <p className="text-[12px] font-semibold text-gray-600 tracking-wide">
+        <p className="text-[13px] font-semibold text-gray-600 tracking-wide">
           Status Pesanan
         </p>
         {awbNumber && (
-          <span className="text-[12px] bg-gray-100 px-2 py-0.5 rounded text-zinc-600 tracking-wide">
+          <span className="text-[12px] bg-gray-100 px-2 py-0.5 rounded tracking-wide">
             {awbNumber}
           </span>
         )}
       </div>
 
-      <div className="relative space-y-4 before:absolute before:left-[6px] before:top-2 before:bottom-2 before:w-[1px] before:bg-gray-100">
+      <div className="relative space-y-2 before:absolute before:left-[6px] before:top-2 before:bottom-2 before:w-[1px] before:bg-gray-100">
         {visibleHistory?.length > 0 ? (
           <>
             {visibleHistory.map((hist, index) => (
@@ -56,19 +56,16 @@ export default function OrderTracking({ history, awbNumber, isLoading }: OrderTr
                 </div>
 
                 <div className="flex flex-col">
-                  <p className={`text-[12px] leading-snug ${index === 0 ? 'text-black font-bold' : 'text-gray-700'}`}>
+                  <p className={`text-[12px] leading-snug ${index === 0 ? 'text-black' : 'text-gray-700'}`}>
                     {toSentenceCase(hist.notes)}
                   </p>
                   
-                  <div className="flex gap-2 items-center mt-1">
+                  <div className="flex items-center mt-1">
                     <p className="text-[10px] text-gray-400">
-                      {new Date(hist.createdAt).toLocaleString('id-ID', { 
-                        dateStyle: 'medium', 
-                        timeStyle: 'short' 
-                      })}
+                      {formatDateTime(hist.createdAt)}
                     </p>
                     {hist.location && (
-                      <span className="text-[10px] text-[#26aa99] font-medium uppercase">
+                      <span className="text-[10px] text-[#26aa99]">
                         • {hist.location}
                       </span>
                     )}

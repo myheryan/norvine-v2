@@ -54,29 +54,38 @@ export const generateOTP = async (email: string) => {
       },
     });
 
-    // 4. TEMPLATE EMAIL PROFESSIONAL (NORVINE STYLE)
-    const htmlContent = `
-      <div style="font-family: sans-serif; max-width: 500px; margin: auto; border: 1px solid #f0f0f0; border-radius: 12px; overflow: hidden; color: #333;">
-        <div style="background-color: #000; padding: 20px; text-align: center;">
-          <h1 style="color: #fff; margin: 0; font-size: 20px; letter-spacing: 4px; text-transform: uppercase;">NORVINE</h1>
-        </div>
-        
-        <div style="padding: 30px; text-align: center;">
-          <h2 style="font-size: 18px; margin-bottom: 10px;">Verifikasi Keamanan</h2>
-          <p style="font-size: 14px; color: #666;">Gunakan kode di bawah ini untuk memverifikasi akun Anda. Kode ini rahasia dan berlaku selama 5 menit.</p>
-          
-          <div style="margin: 30px 0; background-color: #f6fcfb; border: 1px dashed #26aa99; padding: 20px; border-radius: 12px;">
-            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #000;">${otp}</span>
-          </div>
-          
-          <p style="font-size: 12px; color: #999;">Jika Anda tidak merasa meminta kode ini, abaikan email ini atau hubungi bantuan.</p>
-        </div>
-        
-        <div style="padding: 20px; background-color: #fafafa; text-align: center; font-size: 10px; color: #aaa;">
-          &copy; 2026 Norvine.co.id • Keamanan Akun Terjamin
-        </div>
-      </div>
-    `;
+         const htmlContent = `
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f4f5; font-family: Arial, sans-serif;">
+      <tbody>
+        <tr>
+          <td align="center">
+            <div style="max-width: 600px; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 24px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+              <div style="background-color: #000000; padding: 40px 15px; text-align: center;">
+                <img src="https://norvine.co.id/norvine-logo.png" alt="Norvine Logo" style="width: 240px; height: auto; display: block; margin: 0 auto;">
+              </div>
+              <div style="padding: 40px; color: #000000; font-size: 15px; text-align: left; line-height: 1.5;">
+                <h2 style="margin: 0 0 20px 0; font-size: 18px; text-transform: uppercase; font-weight: 600;">KODE VERIFIKASI</h2>
+                <p style="margin: 0 0 30px 0;">Gunakan kode OTP berikut untuk verifikasi akun Anda:</p>
+                <div style="margin: 30px 0; background-color: #f6fcfb; border: 1px dashed #26aa99; padding: 20px; border-radius: 12px;text-align:center">
+                  <span style="font-size: 32px;text-align:center; font-weight: bold; letter-spacing: 8px; color: #000;">${otp}</span>
+                </div>
+                <p style="margin: 30px 0 0 0; font-size: 13px; color: #374151;">
+                  Kode ini hanya berlaku 5 menit dan bersifat rahasia. Mohon untuk tidak membagikan kode ini kepada siapapun.
+                </p>
+              </div>
+              <div style="background-color: #e5e7eb; padding: 25px; text-align: center; color: #000000; font-size: 12px; border-top: 1px solid #d1d5db;">
+                <p style="margin: 0;">Butuh Bantuan? Hubungi E-mail: <a href="mailto:support@norvine.co.id" style="color: #000000; text-decoration: underline; font-weight: bold;">support@norvine.co.id</a> atau</p>
+                <p style="margin: 5px 0 0 0;">WhatsApp: <strong>0813-7000-8002</strong></p>
+              </div>
+              <div style="padding: 20px; text-align: center; font-size: 12px; color: #4b5563; background-color: #f9fafb;">
+                <p style="margin: 0;">© 2026 Norvine.co.id</p>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  `;
 
     // 5. KIRIM VIA AWS SES
     await sendEmail({

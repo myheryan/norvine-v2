@@ -240,42 +240,13 @@ export const capitalizeName = (name: string): string => {
     .join(" ");
 };
 
-/**
- * Hanya mengubah huruf paling depan dari seluruh kalimat
- * Contoh: "halo dunia" -> "Halo dunia"
- */
+
 export const capitalizeFirstLetter = (text: string): string => {
   if (!text) return "";
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
 
-/**
- * Menggabungkan status pembayaran dan pengiriman menjadi satu label yang dimengerti user.
- */
-export const displayStatus = (trxStatus: PaymentStatus, shipStatus?: ShipmentStatus | null) => {
-  // 1. Cek status pembayaran (Prioritas Utama)
-  if (trxStatus === "PENDING") return "Menunggu Pembayaran";
-  if (trxStatus === "EXPIRED") return "Pembayaran Kedaluwarsa";
-  if (trxStatus === "CANCELLED") return "Pesanan Dibatalkan";
-  if (trxStatus === "REFUNDED") return "Dana Dikembalikan";
-
-  // 2. Jika sudah PAID, baru tampilkan status logistik (Shipment)
-  if (trxStatus === "PAID") {
-    if (!shipStatus) return "Pembayaran Berhasil"; // Fallback jika data shipment belum ke-load
-
-    switch (shipStatus) {
-      case "PENDING": return "Pesanan Dibayar";
-      case "READY_TO_SHIP": return "Siap Dikirim";
-      case "SHIPPED": return "Dalam Pengiriman";
-      case "DELIVERED": return "Pesanan Selesai";
-      case "FAILED": return "Gagal Dikirim";
-      default: return "Diproses";
-    }
-  }
-
-  return "Status Tidak Diketahui";
-};
 
  export const toSentenceCase = (str: any) => {
   if (typeof str !== 'string' || !str) return "";
@@ -284,3 +255,47 @@ export const displayStatus = (trxStatus: PaymentStatus, shipStatus?: ShipmentSta
 
   return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 }; 
+
+export const displayStatus = (trx: any) => {
+  const trxStatus = trx.status;
+  const shipStatus = trx.shipment?.status;
+  const cancelReq = trx.cancellationRequest;
+  const refundReq = trx.refundRequest;
+
+  // 1. PRIORITAS UTAMA: Request Pembatalan (Jika ada pengajuan aktif)
+  if (cancelReq) {
+    if (cancelReq.status === 'PENDING') return "In cancellation";
+    if (cancelReq.status === 'REJECTED') return "Cancel rejected";
+    if (cancelReq.status === 'APPROVED' || trxStatus === "CANCELLED") return "Cancelled";
+  }
+
+  // 2. PRIORITAS KEDUA: Request Refund/Retur (Setelah barang sampai)
+  if (refundReq) {
+    if (refundReq.status === 'PENDING') return "Return pending";
+    if (refundReq.status === 'APPROVED') return "Return approved";
+    if (refundReq.status === 'REJECTED') return "Return rejected";
+    if (trxStatus === "REFUNDED") return "Refunded";
+  }
+
+  // 3. Status Pembayaran Dasar
+  if (trxStatus === "PENDING") return "Menunggu pembayaran";
+  if (trxStatus === "EXPIRED") return "Pesanan dibatalkan";
+  if (trxStatus === "CANCELLED") return "Pesanan dibatalkan";
+  if (trxStatus === "REFUNDED") return "Refunded";
+
+  // 4. Status Logistik (Hanya jika sudah PAID)
+  if (trxStatus === "PAID") {
+    if (!shipStatus || shipStatus === "PENDING") return "Pesanan diproses";
+
+    switch (shipStatus) {
+      
+      case "READY_TO_SHIP": return "Siap dikirim";
+      case "SHIPPED": return "Sedang transit";
+      case "DELIVERED": return "Pesanan Selesai";
+      case "FAILED": return "Pengiriman Gagal";
+      default: return "Sedang diproses";
+    }
+  }
+
+  return "Unknown Status";
+};

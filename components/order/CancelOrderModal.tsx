@@ -34,7 +34,7 @@ export default function CancelOrderModal({ isOpen, onClose, order, onSuccess }: 
 
     try {
       // Endpoint dibedakan sesuai status (Bisa disatukan di backend, tapi di sini kita siapkan logikanya)
-      const endpoint = isPaid ? "/api/user/orders/cancel" : "/api/user/orders/cancel";
+      const endpoint = isPaid ? "pages/api/user/orders/cancellation/withdraw" : "pages/api/user/orders/cancellation/cancel";
       
       const res = await fetch(endpoint, {
         method: "POST",

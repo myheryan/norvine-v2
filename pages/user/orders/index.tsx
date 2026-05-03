@@ -3,24 +3,23 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { 
-  FiCopy, FiShoppingBag, 
-  FiClock, FiCheck, FiX 
-} from "react-icons/fi";
+import { FiCopy, FiShoppingBag} from "react-icons/fi";
 import Image from "next/image";
 import Link from "next/link";
 import { toast } from "sonner";
-import { formatRp, getCloudinaryImage, displayStatus } from "@/lib/utils";
+import { formatIDR, getCloudinaryImage, displayStatus } from "@/lib/utils";
 import { OrderActionButton } from "@/components/order/OrderActionButton"; 
 import TrackingModal from "@/components/order/TrackingModal";
 import LoadingScreen from "@/components/ui/LoadingScreen";
 import CancelOrderModal from "@/components/order/CancelOrderModal";
 import ReturnOrderModal from "@/components/order/ReturnOrderModal";
+import { OrderTrackingStatus } from "@/components/order/OrderTrackingStatus";
+import clsx from "clsx";
 
 const TABS = [
   { id: "ALL", label: "Semua" },
   { id: "UNPAID", label: "Belum Bayar" },
-  { id: "PROCESSING", label: "Diproses" },
+  { id: "READY_TO_SHIP", label: "Diproses" },
   { id: "SHIPPED", label: "Dikirim" },
   { id: "DELIVERED", label: "Selesai" },
   { id: "CANCELLED", label: "Dibatalkan" }, 
@@ -57,34 +56,23 @@ export default function UserOrdersPage() {
 
   const filteredTransactions = useMemo(() => {
     if (activeTab === "ALL") return allTransactions;
-    
     return allTransactions.filter((trx) => {
-      // 1. Tab Dibatalkan (Payment EXPIRED atau CANCELLED)
       if (activeTab === "CANCELLED") {
         return trx.status === "CANCELLED" || trx.status === "EXPIRED";
       }
-
-      // 2. Tab Belum Bayar
       if (activeTab === "UNPAID") {
         return trx.status === "PENDING";
       }
-
-      // 3. Tab Diproses (Sudah PAID, tapi barang belum sampai ke kurir/dikirim)
       if (activeTab === "PROCESSING") {
         return trx.status === "PAID" && 
-               ["PENDING", "PROCESSING", "READY_TO_SHIP"].includes(trx.shipment?.status);
+               ["PENDING", "READY_TO_SHIP"].includes(trx.shipment?.status);
       }
-
-      // 4. Tab Dikirim
       if (activeTab === "SHIPPED") {
         return trx.shipment?.status === "SHIPPED";
       }
-
-      // 5. Tab Selesai
       if (activeTab === "DELIVERED") {
         return trx.shipment?.status === "DELIVERED";
       }
-
       return false;
     });
   }, [activeTab, allTransactions]);
@@ -105,6 +93,36 @@ export default function UserOrdersPage() {
     setIsTrackingOpen(true);
   };
 
+// Di dalam UserOrdersPage.tsx
+
+const handleWithdrawCancel = async (trx: any) => {
+  // Gunakan loading state jika perlu agar tidak double click
+  const confirmWithdraw = window.confirm(
+    "Apakah Anda yakin ingin membatalkan pengajuan pembatalan untuk pesanan ini?"
+  );
+
+  if (!confirmWithdraw) return;
+
+  try {
+    const res = await fetch(`/api/user/orders/cancellation/withdraw`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ transactionId: trx.id }),
+    });
+    const result = await res.json();
+    if (res.ok) {
+      toast.success("Pengajuan pembatalan berhasil ditarik");
+      fetchOrders(); 
+    } else {
+      toast.error(result.message || "Gagal menarik pengajuan");
+    }
+  } catch (error) {
+    console.error("Error withdrawing request:", error);
+    toast.error("Terjadi kesalahan sistem");
+  }
+};
+
+
   return (
     <div className="min-h-screen pb-10 bg-gray-50/30">
       <div className="max-w-4xl mx-auto sm:px-2">
@@ -117,7 +135,7 @@ export default function UserOrdersPage() {
               className={`flex-1 min-w-[100px] py-3 text-sm text-center transition-all border-b-2 ${
                 activeTab === tab.id 
                   ? "border-b-4 border-zinc-950 text-zinc-950 font-black" 
-                  : "border-transparent text-gray-400 "
+                  : "border-transparent text-gray-700 "
               }`}
             >
               {tab.label}
@@ -132,116 +150,82 @@ export default function UserOrdersPage() {
           ) : filteredTransactions.length === 0 ? (
             <div className="bg-white py-24 flex flex-col items-center justify-center text-center px-4 shadow-sm">
               <FiShoppingBag size={48} className="text-gray-100 mb-3" />
-              <p className="text-gray-400 text-[10px] tracking-[0.2em]">Tidak ada pesanan</p>
+              <p className="text-gray-700 text-[10px] tracking-[0.2em]">Tidak ada pesanan</p>
             </div>
           ) : (
             filteredTransactions.map((trx) => {
-              const isExpired = trx.status === "EXPIRED" || trx.status === "CANCELLED";
-              const isReqBatal = !!trx.cancellationRequest; 
-              const isReqRetur = !!trx.refundRequest; 
-              const cancelStatus = trx.cancellationRequest?.status;
 
-              let dest = `/user/orders/${trx.invoice}`;
-              if (isReqRetur) dest = `/user/orders/refund/${trx.invoice}`;
-              else if (isReqBatal) dest = `/user/orders/cancellation/${trx.invoice}`;
-              
+              const firstItem = trx.items?.[0];
+
               return (
-                <div key={trx.id} className={`bg-white shadow-sm border border-gray-100 transition-opacity ${isExpired && !isReqBatal ? "opacity-60" : ""}`}>
+                <div key={trx.id} className="bg-white px-4 py-5 border-b border-gray-100 last:border-0 transition-all">
                   
-                  {/* HEADER STATUS */}
-                  <div className="px-3 py-2 border-b border-gray-200 flex items-center justify-between">
-                    <span 
-                      className="text-[13px] text-gray-900 font-black flex items-center gap-1 cursor-pointer"
-                      onClick={(e) => copyInvoice(e, trx.invoice)}
-                    >
-                      {trx.invoice} <FiCopy size={12} className="text-gray-300" />
-                    </span>
-                    
-                    <div className="flex flex-col items-end text-[10px] font-bold uppercase tracking-wider">
-                       {isReqBatal ? (
-                         <span className={`${
-                           cancelStatus === 'REJECTED' ? 'text-red-600' : 'text-orange-600'
-                         }`}>
-                           {cancelStatus === 'PENDING' ? '⏳ Menunggu Pembatalan' : 
-                            cancelStatus === 'REJECTED' ? '❌ Pembatalan Ditolak' : '✅ Refund Selesai'}
-                         </span>
-                       ) : (
-                         <span className={isExpired ? "text-gray-400" : "text-emerald-600"}>
-                            {displayStatus(trx.status, trx.shipment?.status)}
-                         </span>
-                       )}
-                    </div>
+                  {/* 1. HEADER: INVOICE & STATUS */}
+                  <div className={clsx("flex justify-between items-start mb-4","text-[13px] font-semibold text-black")}>
+                    <span> {trx.invoice} </span>
+                    <span> { displayStatus(trx) }</span>
                   </div>
 
-                  {/* CONTENT (Image & Detail) */}
-                  <Link href={dest} className="block hover:bg-gray-50/40 transition-colors py-3">
-                    {trx.items?.slice(0, 1).map((item: any) => (
-                      <div key={item.id} className="flex items-center gap-4 px-3">
-                        <div className={`relative h-16 w-16 bg-gray-50 border border-gray-200 shrink-0 ${isExpired && !isReqBatal ? "grayscale" : ""}`}>
-                          <Image 
-                            src={getCloudinaryImage(item.product?.thumbnailUrl || "/placeholder.png", 200, 200)} 
-                            alt={item.product?.name || "product"} 
-                            fill 
-                            className="object-cover" 
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-[14px] text-zinc-900 font-black truncate">{item.product?.name}</h4>
-                          <p className="text-gray-500 text-[10px]">Varian: {item.variant?.name || "-"} </p>
-                          <span className="text-black text-xs font-black">x{item.quantity}</span>
-                        </div>
-                        <div className="text-[12px] font-black text-zinc-600">
-                          {formatRp(item.priceAtBuy)} 
-                        </div>
+                  <OrderTrackingStatus trx={trx} onOpenTracking={handleOpenTracking} />
+
+                  {/* 3. PRODUCT DETAIL */}
+                  <Link href={`/user/orders/${trx.invoice}`} className="flex gap-4 group">
+                    <div className="relative h-14 w-14 rounded-2xl overflow-hidden bg-gray-100 shrink-0">
+                      <Image 
+                        src={getCloudinaryImage(firstItem?.product?.thumbnailUrl || "/placeholder.png", 200, 200)} 
+                        alt="product" 
+                        fill 
+                        className="object-cover"
+                      />
+                      
+                    </div>
+                    <div className="flex-1 flex flex-col justify-start">
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="text-[13px] font-medium text-gray-800 line-clamp-2 leading-tight">
+                          {firstItem?.product?.name}
+                        </h4>
+                        <span className="text-[13px] font-medium text-black shrink-0">
+                          {formatIDR(firstItem?.priceAtBuy)}
+                        </span>
                       </div>
-                    ))}
-                    {trx.items && trx.items.length > 1 && (
-                      <div className="px-3 mt-1">
+                      
+                      <div className="flex justify-between items-end">
+                        <p className="text-[12px] text-gray-700">
+                          {firstItem?.variant?.name || "-"}
+                        </p>
+                        <span className="text-[12px] font-medium">
+                          x{firstItem?.quantity}
+                        </span>
+                      </div>
+                      {trx.items && trx.items.length > 1 && (
+                      <div className="mt-1">
                         <p className="text-[10px] text-emerald-600 font-bold italic">
                           +{trx.items.length - 1} produk lainnya
                         </p>
                       </div>
                     )}
+                    </div>
                   </Link>
 
-                  {/* CANCELLATION REQUEST INFO BAR */}
-                  {isReqBatal && (
-                    <div className={`px-3 py-2 flex items-center gap-2 ${
-                      cancelStatus === 'REJECTED' ? 'bg-red-50/50' : 'bg-orange-50/50'
-                    }`}>
-                       {cancelStatus === 'PENDING' ? (
-                         <FiClock size={12} className="text-orange-500 animate-pulse" />
-                       ) : cancelStatus === 'REJECTED' ? (
-                         <FiX size={12} className="text-red-500" />
-                       ) : (
-                         <FiCheck size={12} className="text-emerald-500" />
-                       )}
-                       <p className={`text-xs ${
-                         cancelStatus === 'REJECTED' ? 'text-red-800' : 'text-orange-800'
-                       }`}>
-                         {cancelStatus === 'PENDING' && "Pengajuan pembatalan sedang ditinjau admin."}
-                         {cancelStatus === 'REJECTED' && "Pembatalan ditolak. Silakan hubungi CS."}
-                         {cancelStatus === 'REFUNDED' && "Dana telah dikembalikan sepenuhnya."}
-                       </p>
+                  {/* 4. TOTAL AMOUNT */}
+                  <div className="flex justify-end items-center mb-2">
+                    <div className="text-right">
+                        <span className="text-[13px] text-gray-500 mr-2">Total:</span>
+                        <span className="text-[14px] font-black text-black">
+                          {formatIDR(trx.totalAmount)}
+                        </span>
                     </div>
-                  )}
+                  </div>
 
-                  {/* FOOTER ACTIONS */}
-                  <div className="px-3 py-3 border-t border-dashed border-gray-100 flex flex-row justify-between items-center bg-slate-50/30">
-                    <div className="flex items-center gap-2">
-                       <span className="text-gray-500 text-sm">Total</span>
-                       <span className={`text-[16px] font-black ${isExpired && !isReqBatal ? "text-gray-400" : "text-zinc-900"}`}>
-                         {formatRp(trx.totalAmount)}
-                       </span>
-                    </div>
-
+                  <div className="flex justify-end gap-2">
                     <OrderActionButton 
                       trx={trx} 
                       handlePayment={handlePayment} 
                       onOpenTracking={handleOpenTracking}
                       onCancel={() => { setSelectedTrx(trx); setIsCancelOpen(true); }} 
-                      onReturn={() => { setSelectedTrx(trx); setIsReturnOpen(true); }} 
-                    />
+                      onReturn={() => { setSelectedTrx(trx); setIsReturnOpen(true); }}
+                      onWithdrawCancel={handleWithdrawCancel}
+                   />
                   </div>
                 </div>
               );

@@ -16,15 +16,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(401).json({ error: "Silakan login kembali." });
     }
 
-    // Pastikan pengambilan ID user sesuai dengan konfigurasi session Anda
     const userId = (session.user as any).id;
 
     const transaction = await prisma.transaction.findUnique({
-      where: { 
-        // Menggunakan invoice sebagai identifier unik
-        invoice: String(id), 
-      },
+      where: { invoice: String(id) },
       include: {
+        user: true, 
         shippingAddress: true, 
         shipment: true,
         items: {
@@ -42,8 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           }
         },
-        // Pastikan nama field di schema Prisma adalah 'history'
-        // Jika di schema namanya 'orderHistory', ubah menjadi orderHistory
         history: {
           orderBy: {
             createdAt: 'desc'
@@ -54,25 +49,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    // 1. Cek keberadaan transaksi
     if (!transaction) {
       return res.status(404).json({ error: "Pesanan tidak ditemukan." });
     }
 
-    // 2. Keamanan: Pastikan transaksi ini milik user yang sedang login
     if (transaction.userId !== userId) {
-      return res.status(403).json({ error: "Akses ditolak. Anda tidak memiliki izin untuk melihat pesanan ini." });
+      return res.status(403).json({ error: "Akses ditolak." });
     }
 
-    // 3. Tambahkan header untuk memastikan data selalu fresh (Penting untuk status tracking)
+
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
     return res.status(200).json(transaction);
 
   } catch (error) {
     console.error("FETCH_ORDER_DETAIL_ERROR:", error);
-    return res.status(500).json({ error: "Gagal mengambil data pesanan secara internal." });
+    return res.status(500).json({ error: "Gagal mengambil data pesanan." });
   }
 }

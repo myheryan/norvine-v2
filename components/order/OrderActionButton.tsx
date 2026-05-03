@@ -6,73 +6,122 @@ interface ActionButtonProps {
   trx: any;
   handlePayment: (e: React.MouseEvent, trx: any) => void;
   onOpenTracking: (trx: any) => void;
-  onCancel: (trx: any) => void; // Menangani Pembatalan (Tipe 1 & 2)
-  onReturn: (trx: any) => void; // Menangani Pengembalian Barang (Retur)
+  onCancel: (trx: any) => void; 
+  onWithdrawCancel?: (trx: any) => void;
+  onReturn: (trx: any) => void; 
 }
 
 export const OrderActionButton = ({ 
   trx, 
   handlePayment, 
   onOpenTracking, 
-  onCancel, 
+  onCancel,
+  onWithdrawCancel,
   onReturn 
 }: ActionButtonProps) => {
   const router = useRouter();
 
-  // Deteksi adanya request di database
   const hasCancelReq = !!trx.cancellationRequest;
+  const cancelStatus = trx.cancellationRequest?.status;
   const hasReturnReq = !!trx.refundRequest;
+  const shipStatus = trx.shipment?.status; 
 
-  const getButtons = () => {
+const getButtons = () => {
     const buttons = [];
+
+    // 1. Definisikan kondisi pengiriman
+    const isTransit = shipStatus === "SHIPPED";
+    const isReady = shipStatus === "READY_TO_SHIP";
+    const isDelivered = shipStatus === "DELIVERED";
 
     switch (trx.status) {
       case "PENDING":
-        // BELUM BAYAR: Pembatalan Tipe 1
         buttons.push({ 
-          label: "Batalkan", 
-          className: "bg-zinc-900 text-zinc-400 border-zinc-100", 
+          label: "Cancel order", 
+          className: "border-zinc-200 text-zinc-500 hover:bg-zinc-50", 
           onClick: () => onCancel(trx) 
         });
         buttons.push({ 
-          label: "Bayar Sekarang", 
-          className: "bg-[#ee4d2d] text-white border-none shadow-sm", 
+          label: "Pay now", 
+          className: "bg-zinc-950 text-white border-zinc-950 hover:bg-zinc-800", 
           onClick: (e: any) => handlePayment(e, trx) 
         });
         break;
 
       case "PAID":
       case "PROCESSING":
-      case "READY_TO_SHIP":
-        // SUDAH BAYAR: Pembatalan Tipe 2 (Kembali Dana)
+        // --- LOGIKA PRIORITAS: PEMBATALAN ---
+        // Jika ada request pembatalan (Pending atau Rejected), tampilkan tombol terkait dulu
         if (hasCancelReq) {
+          if (cancelStatus === 'PENDING') {
+            buttons.push({ 
+              label: "Withdraw request", 
+              className: "border-zinc-200 text-zinc-900 hover:bg-zinc-50", 
+              onClick: () => onWithdrawCancel && onWithdrawCancel(trx) 
+            });
+            buttons.push({ 
+              label: "View cancellation", 
+              className: "border-orange-100 text-orange-600 bg-orange-50/50", 
+              onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
+            });
+          } 
+          else if (cancelStatus === 'REJECTED') {
+            buttons.push({ 
+              label: "View details", 
+              className: "border-zinc-200 text-zinc-500", 
+              onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
+            });
+            // Jika ditolak dan BELUM dikirim, kasih kesempatan cancel lagi kalau mau
+            if (!isReady && !isTransit && !isDelivered) {
+              buttons.push({ 
+                label: "Cancel order", 
+                className: "border-zinc-200 text-zinc-500", 
+                onClick: () => onCancel(trx) 
+              });
+            }
+          }
+        } 
+        
+        // --- LOGIKA KEDUA: TRACKING ---
+        // Hanya tampilkan Lacak jika TIDAK sedang dalam proses pembatalan PENDING
+        if ((isReady || isTransit) && cancelStatus !== 'PENDING') {
           buttons.push({ 
-            label: "Tinjau Pembatalan", 
-            className: "bg-red-50 text-red-600 border-red-100", 
-            onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
+            label: "Track package", 
+            className: "bg-zinc-950 text-white border-zinc-950 hover:bg-zinc-800", 
+            onClick: () => onOpenTracking(trx) 
           });
-        } else {
+        }
+
+        // --- LOGIKA KETIGA: CANCEL BARU ---
+        // Jika tidak ada request sama sekali dan belum masuk proses kirim
+        if (!hasCancelReq && !isReady && !isTransit && !isDelivered) {
           buttons.push({ 
-            label: "Ajukan Pembatalan", 
-            className: "bg-zinc-900 text-zinc-400 border-zinc-100", 
+            label: "Cancel order", 
+            className: "border-zinc-200 text-zinc-500 hover:bg-zinc-50", 
             onClick: () => onCancel(trx) 
           });
         }
 
-        if (trx.status === "READY_TO_SHIP") {
+        // --- LOGIKA KEEMPAT: DELIVERED ---
+        if (isDelivered) {
           buttons.push({ 
-            label: "Lacak", 
-            className: "bg-zinc-900 text-white border-none", 
-            onClick: () => onOpenTracking(trx) 
+            label: "Return items", 
+            className: "border-zinc-200 text-zinc-600 hover:bg-zinc-50", 
+            onClick: () => onReturn(trx) 
+          });
+          buttons.push({ 
+            label: "Buy again", 
+            className: "bg-zinc-950 text-white border-zinc-950 hover:bg-zinc-800", 
+            onClick: () => router.push(`/our-products`) 
           });
         }
         break;
 
       case "SHIPPED":
-        // BARANG JALAN: Bisa Lacak & Bisa Retur
+        // Di status SHIPPED biasanya pembatalan sudah tidak bisa, jadi fokus ke Lacak
         buttons.push({ 
-          label: "Lacak", 
-          className: "bg-zinc-900 text-white border-none", 
+          label: "Track package", 
+          className: "bg-zinc-950 text-white border-zinc-950 hover:bg-zinc-800", 
           onClick: () => onOpenTracking(trx) 
         });
         break;
@@ -80,37 +129,37 @@ export const OrderActionButton = ({
       case "COMPLETED":
         if (hasReturnReq) {
           buttons.push({ 
-            label: "Tinjau Pengembalian Baarang", 
-            className: "bg-orange-50 text-orange-600 border-orange-200", 
+            label: "Review return", 
+            className: "border-orange-100 text-orange-600 bg-orange-50/50", 
             onClick: () => router.push(`/user/orders/refund/${trx.invoice}`) 
           });
         } else {
           buttons.push({ 
-            label: "Return Barang", 
-            className: "text-orange-500 border-orange-100", 
+            label: "Return items", 
+            className: "border-zinc-200 text-zinc-600 hover:bg-zinc-50", 
             onClick: () => onReturn(trx) 
           });
         }
         buttons.push({ 
-          label: "Beli Lagi", 
-          className: "bg-zinc-900 text-white border-none", 
+          label: "Buy again", 
+          className: "bg-zinc-950 text-white border-zinc-950 hover:bg-zinc-800", 
           onClick: () => router.push(`/our-products`) 
         });
         break;
 
-      case "CANCELLED":
-      case "EXPIRED":
-        // SUDAH BATAL
-        buttons.push({ 
-          label: "Detail Pembatalan", 
-          className: "text-zinc-500 border-zinc-200", 
-          onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
-        });
-        buttons.push({ 
-          label: "Beli Lagi", 
-          className: "bg-zinc-900 text-white border-none", 
-          onClick: () => router.push(`/our-products`) 
-        });
+      default:
+        if (trx.status === "CANCELLED" || trx.status === "EXPIRED") {
+          buttons.push({ 
+            label: "View details", 
+            className: "border-zinc-200 text-zinc-500 hover:bg-zinc-50", 
+            onClick: () => router.push(`/user/orders/cancellation/${trx.invoice}`) 
+          });
+          buttons.push({ 
+            label: "Buy again", 
+            className: "bg-zinc-950 text-white border-zinc-950 hover:bg-zinc-800", 
+            onClick: () => router.push(`/our-products`) 
+          });
+        }
         break;
     }
 
@@ -120,19 +169,18 @@ export const OrderActionButton = ({
   const buttons = getButtons();
 
   return (
-    <div className="flex flex-wrap gap-2 justify-end">
+    <div className="flex gap-2 justify-end">
       {buttons.map((btn, idx) => (
         <button
           key={idx}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            btn.onClick();
+            btn.onClick(e);
           }}
           className={`
-            px-4 py-2 text-[10px] font-black uppercase tracking-widest 
-            border transition-all duration-200 rounded-none 
-            flex items-center justify-center min-w-[100px]
+            px-3 py-2 text-xs font-semibold transition-all duration-200 
+            rounded-full border flex items-center justify-center min-w-[100px]
             ${btn.className}
           `}
         >
